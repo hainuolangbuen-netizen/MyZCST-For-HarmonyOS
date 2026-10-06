@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────
+#  HarmonyOS / DevEco Studio 工程通用忽略规则
+# ─────────────────────────────────────────────────────────────
+
+# 构建产物
+/build/
+/*/build/
+/.hvigor/
+/hvigor/.cache/
+/.preview/
+/*/.preview/
+/.cxx/
+/entry/.cxx/
+*.hap
+*.app
+*.har
+*.hsp
+/dist/
+
+# 依赖
+/oh_modules/
+/*/oh_modules/
+/node_modules/
+oh-package-lock.json5
+
+# IDE
+/.idea/
+*.iml
+/.vscode/
+*.swp
+
+# 本地环境（每台机器不一样，绝对不能提交）
+/local.properties
+/build-profile.local.json5
+/build-profile.*-backup.json5
+
+# 签名材料：证书 / 密钥库 / Profile，一旦泄露等于把应用送人
+*.p12
+*.cer
+*.p7b
+*.csr
+*.keystore
+*.jks
+/signing/
+/.signing/
+
+# 系统杂项
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp

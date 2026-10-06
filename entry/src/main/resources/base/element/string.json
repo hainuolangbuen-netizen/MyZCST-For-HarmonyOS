@@ -1,0 +1,60 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "我的珠科主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "珠海科技学院移动门户"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "我的珠科"
+    },
+    {
+      "name": "EntryFormAbility_desc",
+      "value": "我的珠科桌面卡片"
+    },
+    {
+      "name": "EntryFormAbility_label",
+      "value": "我的珠科卡片"
+    },
+    {
+      "name": "schedule_card_name",
+      "value": "今日课表"
+    },
+    {
+      "name": "schedule_card_desc",
+      "value": "显示今天的课程安排"
+    },
+    {
+      "name": "todo_card_name",
+      "value": "我的待办"
+    },
+    {
+      "name": "todo_card_desc",
+      "value": "显示待办与未读消息"
+    },
+    {
+      "name": "tab_news",
+      "value": "资讯"
+    },
+    {
+      "name": "tab_msg",
+      "value": "消息"
+    },
+    {
+      "name": "tab_home",
+      "value": "首页"
+    },
+    {
+      "name": "tab_app",
+      "value": "应用"
+    },
+    {
+      "name": "tab_mine",
+      "value": "我的"
+    }
+  ]
+}

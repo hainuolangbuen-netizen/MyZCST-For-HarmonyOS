@@ -1,0 +1,50 @@
+{
+  "forms": [
+    {
+      "name": "schedule_card",
+      "displayName": "$string:schedule_card_name",
+      "description": "$string:schedule_card_desc",
+      "src": "./ets/widget/pages/ScheduleCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": true,
+      "isDefault": true,
+      "updateEnabled": true,
+      "scheduledUpdateTime": "07:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*2",
+        "2*4",
+        "4*4"
+      ]
+    },
+    {
+      "name": "todo_card",
+      "displayName": "$string:todo_card_name",
+      "description": "$string:todo_card_desc",
+      "src": "./ets/widget/pages/TodoCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": true,
+      "isDefault": false,
+      "updateEnabled": true,
+      "scheduledUpdateTime": "07:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*2",
+        "2*4",
+        "4*4"
+      ]
+    }
+  ]
+}

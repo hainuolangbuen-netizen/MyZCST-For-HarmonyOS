@@ -1,0 +1,12 @@
+{
+  "float": [
+    {
+      "name": "page_text_font_size",
+      "value": "16fp"
+    },
+    {
+      "name": "tab_bar_height",
+      "value": "56vp"
+    }
+  ]
+}

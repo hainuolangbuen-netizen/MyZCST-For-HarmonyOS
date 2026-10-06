@@ -1,0 +1,52 @@
+{
+  "app": {
+    // ┌──────────────────────────────────────────────────────────────────┐
+    // │ 签名配置（开源版故意留空）                                          │
+    // │                                                                  │
+    // │ 本地构建：用 DevEco Studio 打开本工程 → File → Project Structure    │
+    // │          → Signing Configs → 勾选 "Automatically generate          │
+    // │          signature"，DevEco 会自动申请调试证书并回填这里。          │
+    // │                                                                  │
+    // │ 正式发布：换成你自己的发布证书（.p12 / .cer / .p7b）。               │
+    // │                                                                  │
+    // │ ⚠️ 千万不要把带 storePassword / keyPassword 的配置提交上来。        │
+    // └──────────────────────────────────────────────────────────────────┘
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "targetSdkVersion": "26.0.0",
+        "compatibleSdkVersion": "26.0.0",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

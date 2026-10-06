@@ -1,0 +1,36 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "我的珠科主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "我的珠科"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "我的珠科"
+    },
+    {
+      "name": "tab_news",
+      "value": "资讯"
+    },
+    {
+      "name": "tab_msg",
+      "value": "消息"
+    },
+    {
+      "name": "tab_home",
+      "value": "首页"
+    },
+    {
+      "name": "tab_app",
+      "value": "应用"
+    },
+    {
+      "name": "tab_mine",
+      "value": "我的"
+    }
+  ]
+}
