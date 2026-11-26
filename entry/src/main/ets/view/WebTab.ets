@@ -1,5 +1,6 @@
 import { webview } from '@kit.ArkWeb';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { Downloader } from '../common/Downloader';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'myzcst-web';
@@ -71,9 +72,8 @@ export struct WebTab {
           }
         })
         .onDownloadStart((event) => {
-          // TODO: 接 @ohos.request 下载到 filesDir 并 startAbility 打开。
-          // 第一版只记录，附件下载仍是待办项。
           hilog.info(DOMAIN, TAG, 'download start: %{public}s (%{public}s)', event.url, event.mimetype);
+          Downloader.start(this.getUIContext(), event.url, event.contentDisposition, event.mimetype);
         })
     }
     .width('100%')

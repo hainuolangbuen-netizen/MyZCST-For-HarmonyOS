@@ -1,5 +1,6 @@
 import { webview } from '@kit.ArkWeb';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { Downloader } from '../common/Downloader';
 import { WebPageParams } from '../common/RouteParams';
 import { Ui } from '../common/Ui';
 
@@ -97,7 +98,8 @@ struct WebViewPage {
           }
         })
         .onDownloadStart((event) => {
-          hilog.info(DOMAIN, TAG, 'download start: %{public}s', event.url);
+          hilog.info(DOMAIN, TAG, 'download start: %{public}s (%{public}s)', event.url, event.mimetype);
+          Downloader.start(this.getUIContext(), event.url, event.contentDisposition, event.mimetype);
         })
     }
     .width('100%')
