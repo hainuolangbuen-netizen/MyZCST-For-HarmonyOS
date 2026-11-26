@@ -1,7 +1,7 @@
 # 我的珠科 · 鸿蒙版
 
 > 珠海科技学院校园门户的 **HarmonyOS 原生客户端**，用 ArkTS + ArkUI 从零重写。
-> 当前版本：**1.0.8**（versionCode `1000008`，API 26）。
+> 当前版本：**1.0.9**（versionCode `1000009`，API 26）。
 
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-API%2026-000000?logo=harmonyos)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/ArkTS-ArkUI-1a73e8)](https://developer.huawei.com/consumer/cn/arkts)
