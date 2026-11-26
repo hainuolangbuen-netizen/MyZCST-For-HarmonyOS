@@ -3,6 +3,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { common } from '@kit.AbilityKit';
 import { PortalConfig } from '../common/PortalConfig';
+import { CourseSync } from '../common/CourseSync';
 import { Session } from '../common/Session';
 import { Ui } from '../common/Ui';
 
@@ -77,11 +78,12 @@ struct LoginPage {
     this.handled = true;
     this.done = true;
     this.hint = name.length > 0 ? ('登录成功：' + name) : '登录成功';
+    this.hint = this.hint + '，正在同步课程…';
     const ctx: common.Context | undefined = Ui.context(this.getUIContext());
     const goBack: () => void = () => {
       setTimeout(() => {
         Ui.back(this.getUIContext());
-      }, 900);
+      }, 500);
     };
     if (ctx === undefined) {
       goBack();
@@ -89,6 +91,9 @@ struct LoginPage {
     }
     Session.saveName(ctx, name)
       .then(() => {
+        // 后台同步今日课表，不阻塞返回；写完 CardStore 后会主动刷新已添加的卡片。
+        CourseSync.sync(ctx).catch(() => {
+        });
         goBack();
       })
       .catch(() => {
@@ -102,7 +107,7 @@ struct LoginPage {
       Row() {
         Text('‹  返回')
           .fontSize(16)
-          .fontColor($r('app.color.brand_navy'))
+          .fontColor($r('app.color.brand_navy_text'))
           .onClick(() => {
             Ui.back(this.getUIContext());
           })

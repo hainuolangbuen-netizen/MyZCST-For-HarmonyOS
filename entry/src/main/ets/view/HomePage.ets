@@ -1,5 +1,6 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppCatalog, Favorites } from '../common/AppData';
+import { CardManager } from '../common/CardManager';
 import { MaterialGate } from '../common/MaterialGate';
 import { PortalConfig } from '../common/PortalConfig';
 import { PortalApp } from '../common/PortalApi';
@@ -445,7 +446,7 @@ export struct HomePage {
           Text('我的卡片')
             .fontSize(15)
             .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.brand_navy'))
+            .fontColor($r('app.color.brand_navy_text'))
             .margin({ left: 8 })
           Blank()
           Text('管理')
@@ -459,8 +460,8 @@ export struct HomePage {
         .borderRadius(12)
         .margin({ left: 12, right: 12, top: 12 })
         .onClick(() => {
-          // 「管理」= 去应用页维护「我的收藏」。
-          this.onOpenTab(3);
+          // 拉起系统的卡片管理页；用户在那里把「今日课表」添加到桌面。
+          CardManager.openScheduleManager(this.getUIContext());
         })
 
         Text('资讯来自学校官网，卡片与应用入口在「应用」页维护')

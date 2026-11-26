@@ -1,6 +1,9 @@
 import { webview } from '@kit.ArkWeb';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { Downloader } from '../common/Downloader';
+import { WebLink } from '../common/WebLink';
+import { WebPageParams } from '../common/RouteParams';
+import { Ui } from '../common/Ui';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'myzcst-web';
@@ -55,6 +58,18 @@ export struct WebTab {
           this.progress = 100;
           hilog.info(DOMAIN, TAG, 'onPageEnd url=%{public}s', event.url);
         })
+        .onLoadIntercept((event) => {
+          const url: string = event.data.getRequestUrl();
+          if (!event.data.isMainFrame()) {
+            return false;
+          }
+          if (WebLink.isWebUrl(url) && !WebLink.isPaymentUrl(url)) {
+            return false;
+          }
+          hilog.info(DOMAIN, TAG, 'intercept url: %{public}s', url.substring(0, 80));
+          WebLink.openExternal(this.getUIContext(), url);
+          return true;
+        })
         .onErrorReceive((event) => {
           hilog.error(DOMAIN, TAG, 'onErrorReceive url=%{public}s err=%{public}s',
             event.request.getRequestUrl(), event.error.getErrorInfo());
@@ -64,12 +79,25 @@ export struct WebTab {
             event.request.getRequestUrl(), event.response.getResponseCode());
         })
         .onWindowNew((event) => {
-          // 门户 H5 里有多处 window.open / target=_blank。
-          // 把"新窗口"的内容接管到同一个 Web 组件里，否则用户点了链接会没反应。
+          // 同 WebViewPage：不要用当前 controller 接管新窗口，否则 target 为空或
+          // 支付 Scheme 时会把原页面换成空白页。
           hilog.info(DOMAIN, TAG, 'onWindowNew -> %{public}s', event.targetUrl);
-          if (event.targetUrl.length > 0) {
-            event.handler.setWebController(this.controller);
+          const target: string = event.targetUrl;
+          event.handler.setWebController(null);
+          if (target.length === 0) {
+            Ui.toast(this.getUIContext(), '已拦截空白弹窗');
+            return;
           }
+          if (!WebLink.isWebUrl(target)) {
+            WebLink.openExternal(this.getUIContext(), target);
+            return;
+          }
+          if (WebLink.isPaymentUrl(target)) {
+            WebLink.openExternal(this.getUIContext(), target);
+            return;
+          }
+          Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+            new WebPageParams('详情', target));
         })
         .onDownloadStart((event) => {
           hilog.info(DOMAIN, TAG, 'download start: %{public}s (%{public}s)', event.url, event.mimetype);

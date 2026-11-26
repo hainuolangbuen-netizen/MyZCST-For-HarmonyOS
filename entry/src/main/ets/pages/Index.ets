@@ -1,5 +1,6 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { CardNav } from '../common/CardNav';
+import { CourseSync } from '../common/CourseSync';
 import { MaterialGate } from '../common/MaterialGate';
 import { PortalConfig } from '../common/PortalConfig';
 import { Session } from '../common/Session';
@@ -95,6 +96,11 @@ struct Index {
   /** 从登录页 router.back() 回来、或从后台切回前台都会走这里。 */
   onPageShow(): void {
     this.syncLogin();
+    // 登录完成/回到前台时按 TTL 刷新今日课表；数据写入 CardStore 并主动刷新桌面卡片。
+    const ctx = this.getUIContext().getHostContext();
+    if (ctx !== undefined && Session.isLoggedIn()) {
+      CourseSync.ensureFresh(ctx);
+    }
   }
 
   private syncLogin(): void {

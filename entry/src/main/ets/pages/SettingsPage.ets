@@ -8,6 +8,8 @@ import {
   THEME_LIGHT,
   THEME_SYSTEM
 } from '../common/AppSettings';
+import { CardManager } from '../common/CardManager';
+import { CourseSync } from '../common/CourseSync';
 import { MaterialGate } from '../common/MaterialGate';
 import { Ui } from '../common/Ui';
 
@@ -131,6 +133,26 @@ struct SettingsPage {
       + '本机算力档位为「' + levelText + '」。';
   }
 
+  /** 打开系统卡片管理页，用户在那里把「今日课表」添加到桌面。 */
+  private addCard(): void {
+    CardManager.openScheduleManager(this.getUIContext());
+  }
+
+  /** 手动同步今日课表：自动同步失败时用来验证/补救（不覆盖旧数据）。 */
+  private syncCourse(): void {
+    const ctx: common.Context | undefined = this.hostContext();
+    if (ctx === undefined) {
+      Ui.toast(this.getUIContext(), '无法获取应用上下文');
+      return;
+    }
+    Ui.toast(this.getUIContext(), '正在同步今日课表…');
+    CourseSync.sync(ctx).then((ok: boolean) => {
+      Ui.toast(this.getUIContext(), ok ? '今日课表已更新' : '同步失败：请确认已登录且学校接口可用');
+    }).catch(() => {
+      Ui.toast(this.getUIContext(), '同步失败，请稍后重试');
+    });
+  }
+
   @Builder
   topBar() {
     Row() {
@@ -227,6 +249,65 @@ struct SettingsPage {
             .fontColor($r('app.color.text_secondary'))
             .margin({ left: 28, right: 28, top: 10 })
             .lineHeight(18)
+
+          this.sectionTitle('卡片与同步')
+          Column() {
+            Row() {
+              Column() {
+                Text('添加今日课表卡片')
+                  .fontSize(16)
+                  .fontColor($r('app.color.text_primary'))
+                Text('打开系统卡片管理页，选择尺寸添加到桌面')
+                  .fontSize(12)
+                  .fontColor($r('app.color.text_secondary'))
+                  .margin({ top: 3 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              Image($r('app.media.ic_chevron'))
+                .width(14)
+                .height(14)
+                .objectFit(ImageFit.Contain)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+            .onClick(() => {
+              this.addCard();
+            })
+
+            Divider()
+              .strokeWidth(0.5)
+              .color($r('app.color.divider'))
+              .margin({ left: 16 })
+
+            Row() {
+              Column() {
+                Text('立即同步今日课表')
+                  .fontSize(16)
+                  .fontColor($r('app.color.text_primary'))
+                Text('自动同步失败时手动重试，不会覆盖已有数据')
+                  .fontSize(12)
+                  .fontColor($r('app.color.text_secondary'))
+                  .margin({ top: 3 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              Image($r('app.media.ic_chevron'))
+                .width(14)
+                .height(14)
+                .objectFit(ImageFit.Contain)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+            .onClick(() => {
+              this.syncCourse();
+            })
+          }
+          .width('100%')
+          .backgroundColor($r('app.color.card_bg'))
+          .borderRadius(16)
+          .margin({ left: 12, right: 12 })
+          .clip(true)
 
           // 给底部留白
           Row().height(40)
