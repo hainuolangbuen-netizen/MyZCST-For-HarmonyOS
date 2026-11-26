@@ -2,6 +2,7 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { CardNav } from '../common/CardNav';
 import { Session } from '../common/Session';
 import { AppSettings } from '../common/AppSettings';
 
@@ -11,12 +12,23 @@ const TAG: string = 'myzcst';
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, TAG, '%{public}s', 'Ability onCreate');
+    // 桌面小组件点击：卡片把 target 放进 Want，这里转存给 Index 消费。
+    CardNav.capture(want);
     // 把上次登录的用户名从 preferences 回填到 AppStorage，
     // 页面用 @StorageProp('userName') 订阅，冷启动后也能显示登录态。
     Session.restore(this.context);
     // 把「深色模式 / 沉浸光感强度」两项设置读进 AppStorage，
     // 页面用 @StorageProp 订阅；真正切换明暗在 loadContent 之后做。
     AppSettings.publish(this.context);
+  }
+
+  /**
+   * 热启动（App 已在后台）时点击卡片会走这里；冷启动走 onCreate。
+   * 不覆盖的话第二次点卡片就不会再跳转。
+   */
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    hilog.info(DOMAIN, TAG, '%{public}s', 'Ability onNewWant');
+    CardNav.capture(want);
   }
 
   onDestroy(): void {
