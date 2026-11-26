@@ -1,6 +1,7 @@
-# 我的珠科 · 鸿蒙版
+# 我的珠科 · 鸿蒙版（二次开发）
 
-> 珠海科技学院校园门户的 **HarmonyOS 原生客户端**，用 ArkTS + ArkUI 从零重写。
+> 珠海科技学院校园门户的 **HarmonyOS 原生客户端**，用 ArkTS + ArkUI 重写。
+> 本仓库 fork 自 [hainuolangbuen-netizen/MyZCST-For-HarmonyOS](https://github.com/hainuolangbuen-netizen/MyZCST-For-HarmonyOS)，
 > 当前版本：**1.0.9**（versionCode `1000009`，API 26）。
 
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-API%2026-000000?logo=harmonyos)](https://developer.huawei.com/consumer/cn/)
@@ -10,20 +11,16 @@
 用上了系统级的 **沉浸光感**（Immersive Material）悬浮页签、**桌面小组件**、深色 / 浅色 / 跟随系统三态主题，
 以及校内统一身份认证（CAS）免密直通。
 
-> 📌 **本仓库是基于上游项目的二次开发版本**
-> fork 自 [hainuolangbuen-netizen/MyZCST-For-HarmonyOS](https://github.com/hainuolangbuen-netizen/MyZCST-For-HarmonyOS)，
-> 原作者与原始代码版权归上游仓库所有。本仓库在此基础上新增/修复了：
-> 今日课程/我的待办/智能水电三张桌面卡片、登录自动识别学号、
-> 网页附件下载与搜索、微信/支付宝支付 Scheme、深色沉浸光感页签、图标居中。
->
-> ⚠️ 本应用仍是**第三方非官方客户端**，由学生个人维护，**不由珠海科技学院发布，也不代表学校立场**。
+> ⚠️ **第三方非官方客户端**：本项目由学生个人维护，不由珠海科技学院发布，也不代表学校立场。
 > 应用内的资讯、通知、应用入口、课表等内容均来自学校公开的官方网站与信息门户。
 
 ---
 
 ## 目录
 
-- [与上游的关系](#与上游的关系)
+- [这个仓库是什么](#这个仓库是什么)
+- [本仓库改了什么](#本仓库改了什么)
+- [下载与安装](#下载与安装)
 - [截图](#截图)
 - [功能](#功能)
 - [亮点一：沉浸光感](#亮点一沉浸光感)
@@ -38,20 +35,49 @@
 - [免责声明](#免责声明)
 - [许可](#许可)
 
-## 与上游的关系
+## 这个仓库是什么
 
-本仓库是 [hainuolangbuen-netizen/MyZCST-For-HarmonyOS](https://github.com/hainuolangbuen-netizen/MyZCST-For-HarmonyOS)
-的 fork，保留上游的 ArkTS/ArkUI 工程结构、沉浸光感页签和基础页面；所有新增代码都在
-`feat/web-download-search-widget` 分支上，并已合并到本仓库 `main`。
+- **上游**：[hainuolangbuen-netizen/MyZCST-For-HarmonyOS](https://github.com/hainuolangbuen-netizen/MyZCST-For-HarmonyOS)，
+  提供整个 ArkTS/ArkUI 工程骨架、沉浸光感页签与基础页面，原始代码的版权归上游作者。
+- **本仓库**：上游的 fork，在 `main` 上叠加了下面列出的改动，并打 Release 供直接安装。
+- 上游仍在演进，本仓库只保证自己 Release 里的包可用；与上游的差异见 PR
+  [#1](https://github.com/hainuolangbuen-netizen/MyZCST-For-HarmonyOS/pull/1)。
 
-相对上游的主要新增/修改：
+## 本仓库改了什么
 
-- 桌面小组件：今日课程（掌上猪科样式、完成状态变浅、可滚动）、我的待办、智能水电；
-- 登录后自动识别学号，智能水电按 `h5_getstuindexpage.modlist` 读取电量/水量；
-- 网页附件下载、首页搜索、添加应用搜索；
-- 微信/支付宝支付 Scheme 直拉 App，修复水电缴费白屏；
-- 深色 + 沉浸光感「强」时页签改为深色玻璃，深色专用页签图标；
-- 应用图标校徽居中。
+| 模块 | 改动 |
+| --- | --- |
+| 今日课程卡片 | 参考掌上猪科样式重做：时间/节次/课程/教室/教师/周次；下课后整卡变浅并显示「✓ 已完成」；`List` 支持卡片内滚动；登录后自动同步 |
+| 我的待办卡片 | 接入门户待办接口，深色列表卡，支持滚动，无待办显示「暂无待办」 |
+| 智能水电卡片 | `getbindroom` 取房间后调 `h5_getstuindexpage.modlist`，显示剩余电量（度）与剩余冷水/热水（吨），不再显示价格行；完美校园失败时可从应用内智能水电页面读取 |
+| 登录 | CAS 登录页自动识别 6~20 位数字学号，登录返回即可查询水电；设置页仍可手动修正 |
+| 网页 | 附件下载到沙箱并用 Preview Kit 打开；首页搜索、添加应用搜索 |
+| 支付 | `weixin://` / `alipays://` 直接 `startAbility` 拉起 App，H5 收银台才交给浏览器；修复水电缴费白屏与「商家格式有误」常见路径 |
+| 智能水电页 | 移除首屏自动刷新，避免一次性 `ST` 票根失效（「未能识别出目标…票根」） |
+| 主题 | 深色模式对比度；深色 + 沉浸光感「强」时页签改深色玻璃，深色专用页签图标 |
+| 图标 | 分层图标前景缩进安全区，校徽居中 |
+
+> **验证范围**：以上改动目前只在**鸿蒙手机**上验证过；
+> 平板、折叠屏、电脑等其它形态没有实测，可能存在布局或材质差异。
+
+## 下载与安装
+
+- 最新包：[Releases · v1.0.9](https://github.com/xianyu-bxsj/MyZCST-For-HarmonyOS/releases/latest)
+- 文件：`MyZCST-1.0.9-unsigned.hap`（1,072,691 字节）
+- SHA-256：`16E1E250CC6778243B9CF7ECBD6F41231DD0C8DC03A7690C9B81141F0B122070`
+
+Release 里的是**未签名** HAP，直接 `hdc install` 会报签名错误。两条路：
+
+1. **自己签名**：DevEco Studio → `File → Project Structure → Signing Configs`
+   勾选 `Automatically generate signature`，重新 Build 出 `entry-default-signed.hap` 再装（见[装到真机](#装到真机)）。
+2. **用调试安装工具**：社区里常用的两款跨平台工具，可以省掉装 DevEco 的步骤 ——
+   - [小白调试助手 Auto-Installer](https://github.com/likuai2010/auto-installer/releases/latest)：
+     免费、跨平台的鸿蒙应用安装/调试工具，填设备连接信息后直接装 HAP；
+   - [HoKit](https://github.com/yabi-zzh/HoKit/releases/latest)：
+     设备投屏、性能监控、应用解析、**一键重签名**、文件管理等，带重签名功能，适合装未签名包。
+
+   > 两款都是第三方工具，与本项目无关，使用前请自行确认来源与权限；
+   > 参考用法见 [Zitann/HarmonyOS-Haps](https://github.com/Zitann/HarmonyOS-Haps) 的「安装工具」一节。
 
 ## 截图
 
@@ -222,6 +248,10 @@ hdc shell aa start -a EntryAbility -b com.zcst.myzcst
 > `.hap` 和 `.app` 的区别：**`.hap`** 是单个模块的包，用于本地调试 / 侧载；
 > **`.app`** 是整个应用的集合包，是**上架 AppGallery 时要提交**的那个格式。
 
+也可以用[下载与安装](#下载与安装)里提到的第三方调试工具（小白调试助手 / HoKit）安装，
+不必先装 DevEco；但它们与本项目无关，且**不会**替你把包签成你自己的证书，
+发布证书签的包仍然只能走应用市场。
+
 ### 两个最容易撞上的错误
 
 | 报错 | 原因 | 解法 |
@@ -300,7 +330,9 @@ myzcst-harmony/
 - [x] 深色模式可读性：新增 `brand_navy_text` 等深色专用色，修复「我的卡片」标题与返回按钮对比度
 - [x] 水电缴费白屏：拦截支付 Scheme 与收银台弹窗，不再把当前页替换成空白页
 - [ ] 应用列表接口没有公开文档，字段靠运行时探测，学校改版可能会失效
-- [ ] 只适配了手机与平板两种形态，折叠屏 / 车机未验证
+- [ ] **只在鸿蒙手机上验证过**；平板、折叠屏、电脑等形态没有实测，布局与沉浸光感可能有差异
+- [ ] 智能水电走完美校园 `SWAEServlet`（未公开文档），部分网络/账号会被 405 风控
+- [ ] 学号自动识别依赖 CAS 登录页输入框结构，识别不到时需在设置里手动填一次
 
 > 附件保存在应用沙箱内，卸载应用时由系统清理，不会写入公共「下载」目录；
 > 需要分享到其它应用时，可在系统预览窗口中操作。
@@ -323,14 +355,19 @@ myzcst-harmony/
 ## 免责声明
 
 1. 本仓库是 [hainuolangbuen-netizen/MyZCST-For-HarmonyOS](https://github.com/hainuolangbuen-netizen/MyZCST-For-HarmonyOS)
-   的 fork，基于原项目二次开发；原始代码与设计的版权归上游作者所有，本仓库仅对本分支新增/修改部分负责。
+   的 fork，基于原项目二次开发；原始代码与设计的版权归上游作者所有，本仓库只对自己新增/修改的部分负责。
 2. 本应用是**第三方非官方客户端**，与珠海科技学院无隶属、代理或合作关系。
-3. 应用内展示的所有内容（资讯、通知、课表、应用入口等）均来自学校公开的网站与信息门户，
-   不对其准确性、完整性与时效性做任何保证。
+3. 应用内展示的所有内容（资讯、通知、课表、应用入口、水电读数等）均来自学校公开的网站与信息门户，
+   不对其准确性、完整性与时效性做任何保证；充值、缴费等涉及资金的操作请以学校官方页面为准。
 4. **本应用不收集、不上传任何个人信息**，也没有开发者服务器。登录凭据由用户在学校统一身份
-   认证页面（`sos.zcst.edu.cn`）直接提交给学校，应用既不读取明文也不保存密码。
-5. 校徽、校名等标识的知识产权归珠海科技学院所有，本仓库仅出于兼容既有客户端的目的小范围使用；
+   认证页面（`sos.zcst.edu.cn`）直接提交给学校，应用既不读取明文也不保存密码；
+   水电查询用的学号只保存在本机 preferences 中。
+5. 智能水电、待办、课表等数据走的是学校/服务商**未公开文档**的接口，随时可能变更或失效，
+   本仓库不保证长期可用。
+6. 校徽、校名等标识的知识产权归珠海科技学院所有，本仓库仅出于兼容既有客户端的目的小范围使用；
    如权利人提出异议，会立即移除相关资源。
+7. 本仓库的改动**仅在手机端验证**，其它设备形态与所有使用后果由使用者自行承担；
+   请勿将本应用用于任何违反学校规定或法律法规的用途。
 
 ## 许可
 
