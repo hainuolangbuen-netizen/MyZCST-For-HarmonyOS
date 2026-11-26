@@ -18,6 +18,8 @@ export class CardStore {
   static readonly KEY_TODO: string = 'todo_text';
   /** 最近一次同步时间，展示用。 */
   static readonly KEY_UPDATED: string = 'updated_text';
+  /** 卡片副标题（第几周 / 日期），展示用。 */
+  static readonly KEY_SUBTITLE: string = 'subtitle_text';
   /** 登录态 cookie（JSESSIONID 等），主 App 写入，供后续同步复用。 */
   static readonly KEY_COOKIE: string = 'session_cookie';
   /** 上次课程同步成功的时间戳（毫秒），用于避免重复同步。 */

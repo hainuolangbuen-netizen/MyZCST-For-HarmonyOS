@@ -112,12 +112,15 @@ export class CourseSync {
     } else {
       for (const lesson of todayLessons.slice(0, 6)) {
         const range: string = lesson.start + '-' + (lesson.start + lesson.span - 1);
-        lines.push('第' + range + '节 ' + lesson.name +
-          (lesson.room.length > 0 ? ' · ' + lesson.room : ''));
+        // 卡片按 | 拆成「节次 / 课程 / 教室」三列；没有分隔符的旧数据按整行显示。
+        lines.push(range + '|' + lesson.name + '|' + lesson.room);
       }
     }
 
+    const weekText: string = week > 0 ? ('第' + week + '周') : '';
     await CardStore.put(context, CardStore.KEY_SCHEDULE, lines.join('\n'));
+    await CardStore.put(context, CardStore.KEY_SUBTITLE,
+      weekText.length > 0 ? (weekText + ' · ' + CourseSync.dateText()) : CourseSync.dateText());
     await CardStore.put(context, CardStore.KEY_UPDATED, CourseSync.stamp());
     await CardStore.put(context, CardStore.KEY_SYNC_AT, String(Date.now()));
     await CardData.updateAll(context);
@@ -190,6 +193,15 @@ export class CourseSync {
     const hh: string = d.getHours() < 10 ? '0' + d.getHours() : '' + d.getHours();
     const mi: string = d.getMinutes() < 10 ? '0' + d.getMinutes() : '' + d.getMinutes();
     return mm + '-' + dd + ' ' + hh + ':' + mi + ' 已同步';
+  }
+
+  /** 卡片副标题里的日期：11-26 周四。 */
+  private static dateText(): string {
+    const d = new Date();
+    const mm: string = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : '' + (d.getMonth() + 1);
+    const dd: string = d.getDate() < 10 ? '0' + d.getDate() : '' + d.getDate();
+    const names: string[] = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return mm + '-' + dd + ' ' + names[d.getDay()];
   }
 
   /** 在响应里递归找 currentWeek（不同版本可能叫 zc/week）。 */

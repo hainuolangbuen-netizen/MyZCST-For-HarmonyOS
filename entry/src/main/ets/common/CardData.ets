@@ -20,8 +20,10 @@ export class CardData {
     const schedule: string = CardStore.getSync(context, CardStore.KEY_SCHEDULE);
     const todo: string = CardStore.getSync(context, CardStore.KEY_TODO);
     const updated: string = CardStore.getSync(context, CardStore.KEY_UPDATED);
+    const subtitle: string = CardStore.getSync(context, CardStore.KEY_SUBTITLE);
     const data: Record<string, string> = {
       'scheduleTitle': '今日课表',
+      'scheduleSubtitle': subtitle,
       'scheduleLines': schedule.length > 0 ? schedule : '打开「我的珠科」并登录后自动同步',
       'todoTitle': '我的待办',
       'todoLines': todo.length > 0 ? todo : '打开「我的珠科」并登录后自动同步',
