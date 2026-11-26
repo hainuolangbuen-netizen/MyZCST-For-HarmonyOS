@@ -126,21 +126,28 @@ HarmonyOS 26 引入的 `uiMaterial.ImmersiveMaterial` 能让控件以"材质"而
 ## 快速开始
 
 ```bash
-git clone https://github.com/<你的用户名>/myzcst-harmony.git
+git clone https://github.com/hainuolangbuen-netizen/MyZCST-For-HarmonyOS.git
+cd MyZCST-For-HarmonyOS
 ```
 
 然后用 DevEco Studio **打开工程根目录**（不是 `entry/`），等 Sync 完成后点 Run。
 
-命令行构建：
+命令行构建（Windows，脚本会调用 DevEco 自带的 hvigor / node / SDK）：
 
-```bash
-hvigorw --no-daemon assembleHap -p product=default
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build-hap.ps1
+# 可选参数：-BuildMode release、-Clean、-DevEcoHome "D:\...\DevEco Studio"
 ```
 
-产物在 `entry/build/default/outputs/default/`。发布包（`assembleApp` 生成 `.app` 用于上架）：
+仓库没有提交 `hvigorw` 包装脚本，所以直接执行 `hvigorw` 需要 DevEco 的终端环境（或手动把
+`<DevEco>/tools/hvigor/bin` 加进 PATH）；上面的脚本免去这一步，并把 hvigor 缓存固定到
+工程内 `.hvigor-home/`（已加入 `.gitignore`）。
 
-```bash
-hvigorw --no-daemon assembleApp -p product=default -p buildMode=release
+产物在 `entry/build/default/outputs/default/`。上架用的发布包（`.app`）在 DevEco 里
+`Build → Build App(s)` 生成，或使用 DevEco 内置 hvigor：
+
+```powershell
+<DevEco>\tools\node\node.exe <DevEco>\tools\hvigor\bin\hvigorw.js assembleApp -p product=default -p buildMode=release
 ```
 
 ### 签名
@@ -247,12 +254,17 @@ myzcst-harmony/
 
 ## 已知限制（欢迎 PR）
 
+- [x] 网页附件下载：`onDownloadStart` → `@ohos.request` 下载到应用沙箱 `filesDir/downloads/`，
+  完成后用 Preview Kit 打开；系统不支持预览的格式会提示文件名
+- [x] 「添加应用」面板支持按应用名搜索
+- [x] 首页搜索框可用：按名称过滤应用目录，点结果直接打开对应应用
+- [x] 桌面小组件点击直达：课表卡片 → 官方课表轻应用，待办卡片 → PC 融合门户
 - [ ] 桌面小组件目前没有数据源，「今日课表 / 我的待办」只显示占位文案
-- [ ] 附件下载（`onDownloadStart`）只打了日志，还没真正落盘
-- [ ] 「添加应用」面板没有搜索框
-- [ ] 「我的」页的登录按钮只切换本地状态，尚未接上真正的 CAS 登录页
 - [ ] 应用列表接口没有公开文档，字段靠运行时探测，学校改版可能会失效
 - [ ] 只适配了手机与平板两种形态，折叠屏 / 车机未验证
+
+> 附件保存在应用沙箱内，卸载应用时由系统清理，不会写入公共「下载」目录；
+> 需要分享到其它应用时，可在系统预览窗口中操作。
 
 ## 常见问题
 
