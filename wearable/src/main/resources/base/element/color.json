@@ -1,0 +1,12 @@
+{
+  "color": [
+    { "name": "watch_bg", "value": "#000000" },
+    { "name": "watch_text", "value": "#F2F5FA" },
+    { "name": "watch_text_dim", "value": "#8FA3BF" },
+    { "name": "watch_text_faint", "value": "#5A667A" },
+    { "name": "watch_brand", "value": "#4FC3A1" },
+    { "name": "watch_accent", "value": "#5DB1A0" },
+    { "name": "watch_warn", "value": "#E8A33D" },
+    { "name": "watch_track", "value": "#2A3446" }
+  ]
+}

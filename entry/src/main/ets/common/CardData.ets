@@ -3,6 +3,7 @@ import { formBindingData, formProvider } from '@kit.FormKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { CardStore } from './CardStore';
+import { WatchSync } from './WatchSync';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'myzcst-carddata';
@@ -99,5 +100,7 @@ export class CardData {
           formId, e.code, e.message);
       }
     }
+    // 桌面卡片刷新完，顺手把同一份数据推给手表（没有配对设备时静默失败）。
+    WatchSync.push(context);
   }
 }

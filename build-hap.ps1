@@ -21,6 +21,8 @@
 param(
   [string]$DevEcoHome = 'D:\Program Files\Huawei\DevEco Studio',
   [ValidateSet('debug', 'release')][string]$BuildMode = 'debug',
+  # default = 手机（含手表模块的 App Pack）；wearable = 只打手表模块
+  [ValidateSet('default', 'wearable')][string]$Product = 'default',
   [switch]$Clean
 )
 
@@ -54,11 +56,16 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "clean failed (exit $LASTEXITCODE)" }
   }
 
-  Write-Host ">> hvigor assembleHap (mode=$BuildMode)" -ForegroundColor Cyan
-  & $node $hvigorw assembleHap --mode module -p "product=default" -p "buildMode=$BuildMode" --no-daemon 2>&1 | Out-Host
+  Write-Host ">> hvigor assembleHap (product=$Product mode=$BuildMode)" -ForegroundColor Cyan
+  & $node $hvigorw assembleHap --mode module -p "product=$Product" -p "buildMode=$BuildMode" --no-daemon 2>&1 | Out-Host
   if ($LASTEXITCODE -ne 0) { throw "build failed (exit $LASTEXITCODE)" }
 
-  $hap = Join-Path $project 'entry\build\default\outputs\default\entry-default-unsigned.hap'
+  $module = if ($Product -eq 'wearable') { 'wearable' } else { 'entry' }
+  # 模块内 HAP 落在 <module>/build/<module>/outputs/default/，不是 build/default/outputs/。
+  $hap = Join-Path $project "$module\build\$module\outputs\default\$module-default-unsigned.hap"
+  if (-not (Test-Path $hap)) {
+    $hap = Join-Path $project "$module\build\default\outputs\default\$module-default-unsigned.hap"
+  }
   if (Test-Path $hap) {
     $size = [math]::Round((Get-Item $hap).Length / 1MB, 2)
     Write-Host ''

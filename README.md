@@ -17,11 +17,13 @@
 
 ## 下载
 
-| 版本 | 文件 | 大小 | SHA-256 |
+| 包 | 文件 | 大小 | SHA-256 |
 | --- | --- | --- | --- |
-| 1.0.9 | [MyZCST-1.0.9-unsigned.hap](https://github.com/xianyu-bxsj/MyZCST-For-HarmonyOS/releases/latest) | 1,072,691 字节 | `16E1E250CC6778243B9CF7ECBD6F41231DD0C8DC03A7690C9B81141F0B122070` |
+| 手机 1.0.9 | `MyZCST-1.0.9-unsigned.hap` | 1,072,691 字节 | `16E1E250CC6778243B9CF7ECBD6F41231DD0C8DC03A7690C9B81141F0B122070` |
+| 手表 1.0.9 | `MyZCST-watch-1.0.9-unsigned.hap` | 199,491 字节 | `53A1C4255930C3FBBF61B8E445D19C57FAD11BD7734E9848C42AA491AFC46506` |
 
-Release 中的 HAP **未签名**，安装前需要自行签名，或使用带重签名能力的调试工具。
+两个包都在 [Releases](https://github.com/xianyu-bxsj/MyZCST-For-HarmonyOS/releases/latest) 里。
+包是**未签名**的，安装前需要自行签名，或使用带重签名能力的调试工具。
 
 ## 安装
 
@@ -53,6 +55,7 @@ Release 中的 HAP **未签名**，安装前需要自行签名，或使用带重
 | 今日课程卡片 | 显示时间、节次、课程、教室、教师、周次；下课后整卡变浅并标记「已完成」；支持卡片内滚动 |
 | 我的待办卡片 | 同步门户待办，深色列表，支持滚动 |
 | 智能水电卡片 | 显示剩余电量（度）与剩余冷水 / 热水（吨），不显示金额 |
+| 手表端 | 新增 `wearable` 模块：今日课程、本周课表、宿舍水电三页，数据由手机同步下发，手表不存账号 |
 | 登录 | 在 CAS 登录页识别学号，登录后可直接查询水电；设置页可手动修改 |
 | 网页 | 附件下载到应用沙箱并用 Preview Kit 打开；首页与「添加应用」支持搜索 |
 | 支付 | `weixin://`、`alipays://` 交由系统拉起对应应用，H5 收银台在浏览器打开 |
@@ -63,7 +66,7 @@ Release 中的 HAP **未签名**，安装前需要自行签名，或使用带重
 上游功能与实现细节见[功能](#功能)、[亮点一：沉浸光感](#亮点一沉浸光感)、
 [亮点二：桌面小组件](#亮点二桌面小组件)各节。
 
-> 以上改动目前只在鸿蒙手机上验证，平板、折叠屏与电脑未测试。
+> 以上改动目前只在鸿蒙手机上验证，平板、折叠屏与电脑未测试；手表端未上真机。
 
 ## 截图
 
@@ -150,6 +153,35 @@ HarmonyOS 26 引入的 `uiMaterial.ImmersiveMaterial` 让控件以材质而非�
 - 只有带 `@form` 标记的 API 可用，`ImmersiveMaterial` 不在其中，因此小组件无法使用沉浸光感；
 - 卡片不能依赖 HSP，逻辑需内联或放入 HAR。
 
+## 亮点三：手表端
+
+同一个 App Pack 里多了一个 `wearable` 模块（`deviceTypes: ["wearable"]`），只做「看」：
+今日课程（正在上 / 下一节 / 还有几分钟下课）、本周课表、宿舍水电。圆屏 466×466，
+左右各留 40~46vp 避开圆弧，三页左右滑动切换。
+
+手表不登录学校系统，也不存 Cookie —— CAS 需要网页输入密码，手表上没有合适场景，
+也没必要把会话复制到第二台设备。数据由手机推送：
+
+```text
+手机登录 → CourseSync / FeeSync 写 CardStore
+        → CardData.updateAll() 刷新桌面卡片
+        → WatchSync.push() 组装 JSON 并 publish 事件
+        → 手表写入自身 preferences → WatchHome 重新解析渲染
+```
+
+payload 的键名与手机端 `CardStore` 完全一致（`schedule_text` / `subtitle_text` /
+`updated_text` / `fee_room` / `fee_lines` / `fee_updated_text`），
+两端共用同一份文本格式，不重复定义协议：
+
+- 课表一行：`开始|结束|节次|课程|教室|教师|周次`
+- 水电一行：`名称|数值|单位|已用|告警`，例如 `剩余电量|148.20|度|10.03|0`
+
+`WatchModel` 对字段缺失是宽容的：认不出的行直接跳过，水电只接受「度 / 吨 / m³」，
+避免把金额当读数显示。细节见 [wearable/CONTEXT.md](wearable/CONTEXT.md)。
+
+> 跨端投递用的是公共事件，同一台设备内直接生效；真正发到手表设备需要
+> Wear Engine 的设备通道，接口位置与 payload 已预留。
+
 ## 环境要求
 
 | 项目 | 版本 |
@@ -175,15 +207,21 @@ cd MyZCST-For-HarmonyOS
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build-hap.ps1
-# 可选参数：-BuildMode release、-Clean、-DevEcoHome "D:\...\DevEco Studio"
+# 可选参数：-BuildMode release、-Product wearable、-Clean、-DevEcoHome "D:\...\DevEco Studio"
 ```
 
 仓库没有提交 `hvigorw` 包装脚本，所以直接执行 `hvigorw` 需要 DevEco 的终端环境（或手动把
 `<DevEco>/tools/hvigor/bin` 加进 PATH）；上面的脚本免去这一步，并把 hvigor 缓存固定到
 工程内 `.hvigor-home/`（已加入 `.gitignore`）。
 
-产物在 `entry/build/default/outputs/default/`。上架用的发布包（`.app`）在 DevEco 里
-`Build → Build App(s)` 生成，或使用 DevEco 内置 hvigor：
+产物：
+
+| 命令 | 输出 |
+| --- | --- |
+| `build-hap.ps1` | `entry/build/default/outputs/default/entry-default-unsigned.hap` |
+| `build-hap.ps1 -Product wearable` | `wearable/build/wearable/outputs/default/wearable-default-unsigned.hap` |
+
+上架用的发布包（`.app`）在 DevEco 里 `Build → Build App(s)` 生成，或使用 DevEco 内置 hvigor：
 
 ```powershell
 <DevEco>\tools\node\node.exe <DevEco>\tools\hvigor\bin\hvigorw.js assembleApp -p product=default -p buildMode=release
@@ -241,7 +279,7 @@ hdc shell aa start -a EntryAbility -b com.zcst.myzcst
 ```
 myzcst-harmony/
 ├── AppScope/                          应用级配置与分层图标（background / foreground）
-├── entry/
+├── entry/                             手机 / 平板模块
 │   └── src/main/
 │       ├── ets/
 │       │   ├── common/                会话、网络、设置、材质、卡片同步等公共模块
@@ -258,6 +296,7 @@ myzcst-harmony/
 │       │   │   ├── TodoSync.ets           待办同步
 │       │   │   ├── FeeSync.ets            智能水电查询
 │       │   │   ├── WaterBridge.ets        智能水电页面读数兜底
+│       │   │   ├── WatchSync.ets          手机 → 手表的数据推送
 │       │   │   ├── WebLink.ets            站外链接与支付 Scheme
 │       │   │   ├── Downloader.ets         网页附件下载
 │       │   │   ├── RouteParams.ets        页面间参数
@@ -268,7 +307,14 @@ myzcst-harmony/
 │       │   ├── view/                  TabContent 子组件：HomePage / AppPage / MessagePage / MinePage / WebTab
 │       │   └── widget/pages/          三张卡片：ScheduleCard / TodoCard / FeeCard
 │       └── resources/                 颜色（含 dark/）、字符串、32 张自绘 PNG、form_config
-├── build-profile.json5
+├── wearable/                          手表模块（deviceTypes: wearable）
+│   ├── CONTEXT.md                     手表端说明：数据流、文本格式、圆屏约束
+│   └── src/main/
+│       ├── ets/common/                WatchPrefs / WatchSync / WatchModel
+│       ├── ets/entryability/          EntryAbility（订阅手机推送）
+│       ├── ets/pages/WatchHome.ets    课程 / 课表 / 水电三页
+│       └── resources/                 手表配色、字符串、分层图标
+├── build-profile.json5                两个 product：default（手机）、wearable（手表）
 └── oh-package.json5
 ```
 
@@ -312,11 +358,13 @@ myzcst-harmony/
 - 今日课程、我的待办登录后自动同步
 - 智能水电显示剩余电量（度）与剩余水量（吨）
 - 深色模式文字对比度、水电缴费白屏、卡片内滚动
+- 手表端三页可编译出包，数据格式与手机端卡片一致
 
 尚未解决：
 
 - 应用列表接口没有公开文档，字段靠运行时探测，学校改版可能失效
 - 仅在鸿蒙手机上验证，平板、折叠屏与电脑未测试
+- 手表端未上真机验证，圆屏布局按 466×466 推演；跨端投递需要 Wear Engine 设备通道
 - 智能水电依赖完美校园 `SWAEServlet`，部分网络或账号会被 405 拦截
 - 学号自动识别依赖 CAS 登录页表单结构，识别不到时需在设置里手动填写
 
@@ -332,6 +380,10 @@ myzcst-harmony/
 
 **改了主题后不再跟随系统？**
 `setColorMode` 设置过之后会覆盖系统设置，把模式设回 `COLOR_MODE_NOT_SET` 可恢复跟随。
+
+**手表上为什么要先登录手机？**
+手表端不保存账号与 Cookie，课表和水电由手机同步后推送过去；
+手机上没登录过时，手表只会显示「等待手机同步」。
 
 **登录密码会被保存吗？**
 不会。密码只在学校的 `sos.zcst.edu.cn` 页面提交，应用不读取明文、不保存密码，
