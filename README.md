@@ -1,7 +1,7 @@
 # 我的珠科 · 鸿蒙版
 
 > 珠海科技学院校园门户的 **HarmonyOS 原生客户端**，用 ArkTS + ArkUI 从零重写。
-> 当前版本：**1.0.6**（versionCode `1000006`，API 26）。
+> 当前版本：**1.0.7**（versionCode `1000007`，API 26）。
 
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-API%2026-000000?logo=harmonyos)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/ArkTS-ArkUI-1a73e8)](https://developer.huawei.com/consumer/cn/arkts)
@@ -56,7 +56,7 @@
 | **消息** | 学校通知公告、融合门户待办入口 |
 | **我的** | 登录状态、融合门户、学校官网、意见反馈、关于、帮助、设置 |
 | **设置** | 深色 / 浅色 / 跟随系统；沉浸光感 轻 / 标准 / 强 |
-| **桌面小组件** | 今日课程、我的待办、宿舍水电，2×2 / 2×4 / 4×4；课程/待办自动同步，水电可学号直连或从智能水电页面读取 |
+| **桌面小组件** | 今日课程、我的待办、智能水电，2×2 / 2×4 / 4×4；课程/待办自动同步，智能水电从页面读取剩余电量/水量 |
 
 ## 亮点一：沉浸光感
 
@@ -101,7 +101,7 @@ HarmonyOS 26 引入的 `uiMaterial.ImmersiveMaterial` 能让控件以"材质"而
 
 ## 亮点二：桌面小组件
 
-三张卡片：**今日课程**、**我的待办**、**宿舍水电**，支持 2×2 / 2×4 / 4×4 三种尺寸，
+三张卡片：**今日课程**、**我的待办**、**智能水电**，支持 2×2 / 2×4 / 4×4 三种尺寸，
 配置在 `entry/src/main/resources/base/profile/form_config.json`，
 数据经 `EntryFormAbility` 从 preferences（`common/CardStore.ets`）读取。
 登录成功后 `CourseSync` / `TodoSync` 会自动同步课程与待办；`FeeSync` 在设置学号后
@@ -265,7 +265,7 @@ myzcst-harmony/
 - [x] 今日课程数据：登录成功后自动同步（依赖学校旧移动接口，接口改版会失效，见
   [docs/BUGFIX-2026-11-26.md](docs/BUGFIX-2026-11-26.md)）
 - [x] 我的待办数据：登录后从门户待办接口同步，卡片支持滚动
-- [x] 宿舍水电数据：在设置里填学号后查询完美校园，显示电费/冷水/热水余额
+- [x] 智能水电数据：打开应用内智能水电页面读取剩余电量（度）/剩余水量（吨）
 - [x] 深色模式可读性：新增 `brand_navy_text` 等深色专用色，修复「我的卡片」标题与返回按钮对比度
 - [x] 水电缴费白屏：拦截支付 Scheme 与收银台弹窗，不再把当前页替换成空白页
 - [ ] 应用列表接口没有公开文档，字段靠运行时探测，学校改版可能会失效
