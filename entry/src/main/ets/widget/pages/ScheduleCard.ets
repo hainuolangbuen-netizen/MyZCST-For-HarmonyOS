@@ -204,25 +204,30 @@ struct ScheduleCard {
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
       } else {
-        Column() {
+        // List 从 API 9 起支持 ArkTS 卡片；2x2 小卡片课程多时可上下滑动查看。
+        List({ space: 0 }) {
           ForEach(this.lines(), (line: string, index: number) => {
-            if (this.structured(line)) {
-              this.courseCard(line, index)
-            } else {
-              Text(line)
-                .fontSize(12)
-                .fontColor('#AAB8CA')
-                .width('100%')
-                .maxLines(3)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .margin({ top: 10 })
+            ListItem() {
+              if (this.structured(line)) {
+                this.courseCard(line, index)
+              } else {
+                Text(line)
+                  .fontSize(12)
+                  .fontColor('#AAB8CA')
+                  .width('100%')
+                  .maxLines(3)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .margin({ top: 10 })
+              }
             }
+            .width('100%')
           }, (line: string, index: number) => index + '-' + line)
         }
         .width('100%')
         .layoutWeight(1)
-        .justifyContent(FlexAlign.Start)
-        .alignItems(HorizontalAlign.Start)
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
+        .alignListItem(ListItemAlign.Start)
       }
 
       if (this.updatedText.length > 0) {
