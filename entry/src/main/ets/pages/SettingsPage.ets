@@ -13,6 +13,8 @@ import { CardStore } from '../common/CardStore';
 import { CourseSync } from '../common/CourseSync';
 import { FeeSync } from '../common/FeeSync';
 import { MaterialGate } from '../common/MaterialGate';
+import { PortalConfig } from '../common/PortalConfig';
+import { WebPageParams } from '../common/RouteParams';
 import { TodoSync } from '../common/TodoSync';
 import { Ui } from '../common/Ui';
 
@@ -177,7 +179,7 @@ struct SettingsPage {
       Ui.toast(this.getUIContext(), no.length > 0 ? '学号已保存，正在查询水电…' : '已清空水电查询学号');
       if (no.length > 0) {
         FeeSync.sync(ctx).then((ok: boolean) => {
-          Ui.toast(this.getUIContext(), ok ? '水电数据已更新' : '水电查询失败：请核对学号或稍后重试');
+          Ui.toast(this.getUIContext(), ok ? '水电数据已更新' : '完美校园接口失败：打开应用内「智能水电」页面后会自动读取');
         }).catch(() => {
           Ui.toast(this.getUIContext(), '水电查询失败，请稍后重试');
         });
@@ -196,7 +198,7 @@ struct SettingsPage {
     }
     Ui.toast(this.getUIContext(), '正在查询宿舍水电…');
     FeeSync.sync(ctx).then((ok: boolean) => {
-      Ui.toast(this.getUIContext(), ok ? '水电数据已更新' : '水电查询失败，请核对学号或网络');
+      Ui.toast(this.getUIContext(), ok ? '水电数据已更新' : '完美校园接口失败：打开应用内「智能水电」页面后会自动读取');
     }).catch(() => {
       Ui.toast(this.getUIContext(), '水电查询失败，请稍后重试');
     });
@@ -221,6 +223,12 @@ struct SettingsPage {
 
   private addFeeCard(): void {
     CardManager.openFeeManager(this.getUIContext());
+  }
+
+  /** 打开应用内智能水电页；页面加载后 WaterBridge 会自动读取余额并刷新卡片。 */
+  private openWaterPage(): void {
+    Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+      new WebPageParams('智能水电', PortalConfig.WATER_CHARGES));
   }
 
   @Builder
@@ -427,6 +435,34 @@ struct SettingsPage {
             .padding({ left: 16, right: 16, top: 12, bottom: 12 })
             .onClick(() => {
               this.addFeeCard();
+            })
+
+            Divider()
+              .strokeWidth(0.5)
+              .color($r('app.color.divider'))
+              .margin({ left: 16 })
+
+            Row() {
+              Column() {
+                Text('打开智能水电页面')
+                  .fontSize(16)
+                  .fontColor($r('app.color.text_primary'))
+                Text('页面显示余额后会自动写入水电卡片（完美校园接口失败时用）')
+                  .fontSize(12)
+                  .fontColor($r('app.color.text_secondary'))
+                  .margin({ top: 3 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              Image($r('app.media.ic_chevron'))
+                .width(14)
+                .height(14)
+                .objectFit(ImageFit.Contain)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+            .onClick(() => {
+              this.openWaterPage();
             })
 
             Divider()

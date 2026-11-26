@@ -97,7 +97,7 @@ struct FeeCard {
           Text(this.feeRoom.length > 0 ? '暂未获取到余额' : '尚未获取水电数据')
             .fontSize(13)
             .fontColor('#AAB8CA')
-          Text('在「设置 → 卡片与同步」填写学号后自动查询')
+          Text('设置里填学号，或打开应用内「智能水电」页面自动读取')
             .fontSize(10)
             .fontColor('#6F7B8B')
             .margin({ top: 5 })

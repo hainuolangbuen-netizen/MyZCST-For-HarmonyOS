@@ -1,7 +1,9 @@
 import { webview } from '@kit.ArkWeb';
+import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { Downloader } from '../common/Downloader';
 import { WebLink } from '../common/WebLink';
+import { WATER_SCRAPE_JS, WaterBridge, isWaterUrl } from '../common/WaterBridge';
 import { WebPageParams } from '../common/RouteParams';
 import { Ui } from '../common/Ui';
 
@@ -24,8 +26,10 @@ struct WebViewPage {
   @State currentUrl: string = '';
   private controller: webview.WebviewController = new webview.WebviewController();
   private initialUrl: string = '';
+  private waterBridge: WaterBridge = new WaterBridge();
 
   aboutToAppear(): void {
+    this.waterBridge.attach(getContext(this) as common.Context);
     const params: WebPageParams | undefined =
       Ui.params(this.getUIContext()) as WebPageParams | undefined;
     if (params !== undefined) {
@@ -85,6 +89,12 @@ struct WebViewPage {
         .mixedMode(MixedMode.Compatible)
         .zoomAccess(true)
         .multiWindowAccess(true)
+        .javaScriptProxy({
+          object: this.waterBridge,
+          name: '__myzcstWater',
+          methodList: ['save'],
+          controller: this.controller
+        })
         .onProgressChange((event) => {
           this.progress = event.newProgress;
         })
@@ -92,6 +102,10 @@ struct WebViewPage {
           this.progress = 100;
           this.currentUrl = event.url;
           hilog.info(DOMAIN, TAG, 'onPageEnd %{public}s', event.url);
+          if (isWaterUrl(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
+          }
         })
         // 支付/第三方 App 的 Scheme（weixin://、alipays://、intent:// 等）不能让
         // Web 组件直接导航，否则会得到一张空白页且回不去；这里交给系统拉起对应 App。

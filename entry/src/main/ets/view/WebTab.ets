@@ -1,7 +1,9 @@
 import { webview } from '@kit.ArkWeb';
+import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { Downloader } from '../common/Downloader';
 import { WebLink } from '../common/WebLink';
+import { WATER_SCRAPE_JS, WaterBridge, isWaterUrl } from '../common/WaterBridge';
 import { WebPageParams } from '../common/RouteParams';
 import { Ui } from '../common/Ui';
 
@@ -22,6 +24,11 @@ export struct WebTab {
   @StorageProp('topAvoidPx') topAvoidPx: number = 0;
   @State progress: number = 100;
   private controller: webview.WebviewController = new webview.WebviewController();
+  private waterBridge: WaterBridge = new WaterBridge();
+
+  aboutToAppear(): void {
+    this.waterBridge.attach(getContext(this) as common.Context);
+  }
 
   /**
    * 窗口是 setWindowLayoutFullScreen(true) 的全屏布局，网页从 y=0 开始画，
@@ -48,6 +55,12 @@ export struct WebTab {
         .mixedMode(MixedMode.Compatible)
         .zoomAccess(false)
         .multiWindowAccess(true)
+        .javaScriptProxy({
+          object: this.waterBridge,
+          name: '__myzcstWater',
+          methodList: ['save'],
+          controller: this.controller
+        })
         .onProgressChange((event) => {
           this.progress = event.newProgress;
         })
@@ -57,6 +70,10 @@ export struct WebTab {
         .onPageEnd((event) => {
           this.progress = 100;
           hilog.info(DOMAIN, TAG, 'onPageEnd url=%{public}s', event.url);
+          if (isWaterUrl(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
+          }
         })
         .onLoadIntercept((event) => {
           const url: string = event.data.getRequestUrl();
