@@ -21,12 +21,21 @@ export class CardData {
     const todo: string = CardStore.getSync(context, CardStore.KEY_TODO);
     const updated: string = CardStore.getSync(context, CardStore.KEY_UPDATED);
     const subtitle: string = CardStore.getSync(context, CardStore.KEY_SUBTITLE);
+    const todoUpdated: string = CardStore.getSync(context, CardStore.KEY_TODO_UPDATED);
+    const feeRoom: string = CardStore.getSync(context, CardStore.KEY_FEE_ROOM);
+    const feeLines: string = CardStore.getSync(context, CardStore.KEY_FEE_LINES);
+    const feeUpdated: string = CardStore.getSync(context, CardStore.KEY_FEE_UPDATED);
     const data: Record<string, string> = {
       'scheduleTitle': '今日课程',
       'scheduleSubtitle': subtitle,
       'scheduleLines': schedule.length > 0 ? schedule : '打开「我的珠科」并登录后自动同步',
       'todoTitle': '我的待办',
-      'todoLines': todo.length > 0 ? todo : '打开「我的珠科」并登录后自动同步',
+      'todoLines': todo.length > 0 ? todo : '暂无待办',
+      'todoUpdatedText': todoUpdated,
+      'feeTitle': '宿舍水电',
+      'feeRoom': feeRoom,
+      'feeLines': feeLines.length > 0 ? feeLines : '尚未获取水电数据',
+      'feeUpdatedText': feeUpdated,
       'updatedText': updated
     };
     return formBindingData.createFormBindingData(data);
@@ -59,6 +68,11 @@ export class CardData {
       ids.push(id);
     }
     for (const id of CardStore.formIds(context, CardStore.KEY_FORM_TODO)) {
+      if (ids.indexOf(id) < 0) {
+        ids.push(id);
+      }
+    }
+    for (const id of CardStore.formIds(context, CardStore.KEY_FORM_FEE)) {
       if (ids.indexOf(id) < 0) {
         ids.push(id);
       }

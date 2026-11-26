@@ -58,6 +58,10 @@ export class PortalConfig {
   static readonly LIGHT_SCHEDULE: string =
     'https://mapp.zcst.edu.cn/_web/_apps/lightapp/studentSchedule/mobile/permit/app/pub/index.html';
 
+  /** 宿舍水电轻应用（与官方「智能水电」入口一致）。 */
+  static readonly WATER_CHARGES: string =
+    'https://mapp.zcst.edu.cn/_web/_apps/lightapp/waterCharges/mobile/permit/pc/pub/index.jsp';
+
   /** PC 融合门户（树维 SOPPlus，无移动适配，兜底）。 */
   static readonly PC_PORTAL: string = 'https://my.zcst.edu.cn/_web/sopplus/sopplus/index.html';
 

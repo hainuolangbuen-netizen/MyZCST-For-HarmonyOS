@@ -16,6 +16,10 @@ export class CardStore {
   static readonly KEY_SCHEDULE: string = 'schedule_text';
   /** 我的待办，多行文本，每行一条。 */
   static readonly KEY_TODO: string = 'todo_text';
+  /** 我的待办最近同步时间。 */
+  static readonly KEY_TODO_UPDATED: string = 'todo_updated_text';
+  /** 上次待办同步成功时间戳。 */
+  static readonly KEY_TODO_SYNC_AT: string = 'todo_sync_at';
   /** 最近一次同步时间，展示用。 */
   static readonly KEY_UPDATED: string = 'updated_text';
   /** 卡片副标题（第几周 / 日期），展示用。 */
@@ -24,9 +28,17 @@ export class CardStore {
   static readonly KEY_COOKIE: string = 'session_cookie';
   /** 上次课程同步成功的时间戳（毫秒），用于避免重复同步。 */
   static readonly KEY_SYNC_AT: string = 'sync_at';
+  /** 水电卡：查询用学号（完美校园，学号保留前导零）。 */
+  static readonly KEY_STUDENT_NO: string = 'student_no';
+  /** 水电卡：房间名、费用行（类型|名称|余额|单位|已用|告警）、更新时间、同步时间。 */
+  static readonly KEY_FEE_ROOM: string = 'fee_room';
+  static readonly KEY_FEE_LINES: string = 'fee_lines';
+  static readonly KEY_FEE_UPDATED: string = 'fee_updated_text';
+  static readonly KEY_FEE_SYNC_AT: string = 'fee_sync_at';
   /** 已添加到桌面的卡片 formId（按卡片分开存，换行分隔）。 */
   static readonly KEY_FORM_SCHEDULE: string = 'schedule_form_ids';
   static readonly KEY_FORM_TODO: string = 'todo_form_ids';
+  static readonly KEY_FORM_FEE: string = 'fee_form_ids';
 
   /** 读取某类卡片已添加到桌面的 formId 列表。 */
   static formIds(context: common.Context, key: string): string[] {
@@ -62,7 +74,7 @@ export class CardStore {
     if (formId.length === 0) {
       return;
     }
-    for (const key of [CardStore.KEY_FORM_SCHEDULE, CardStore.KEY_FORM_TODO]) {
+    for (const key of [CardStore.KEY_FORM_SCHEDULE, CardStore.KEY_FORM_TODO, CardStore.KEY_FORM_FEE]) {
       const ids: string[] = CardStore.formIds(context, key);
       const at: number = ids.indexOf(formId);
       if (at >= 0) {

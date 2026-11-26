@@ -9,8 +9,11 @@ import {
   THEME_SYSTEM
 } from '../common/AppSettings';
 import { CardManager } from '../common/CardManager';
+import { CardStore } from '../common/CardStore';
 import { CourseSync } from '../common/CourseSync';
+import { FeeSync } from '../common/FeeSync';
 import { MaterialGate } from '../common/MaterialGate';
+import { TodoSync } from '../common/TodoSync';
 import { Ui } from '../common/Ui';
 
 /**
@@ -73,12 +76,20 @@ struct SettingsPage {
   @StorageProp('topAvoidPx') topAvoidPx: number = 0;
   @StorageLink('themeMode') themeMode: string = THEME_SYSTEM;
   @StorageLink('glassLevel') glassLevel: string = GLASS_STANDARD;
+  @State studentNo: string = '';
 
   private themeOptions: string[] = [THEME_SYSTEM, THEME_LIGHT, THEME_DARK];
   private glassOptions: string[] = [GLASS_THIN, GLASS_STANDARD, GLASS_STRONG];
 
   private topPad(): number {
     return this.getUIContext().px2vp(this.topAvoidPx);
+  }
+
+  aboutToAppear(): void {
+    const ctx: common.Context | undefined = this.hostContext();
+    if (ctx !== undefined) {
+      this.studentNo = CardStore.getSync(ctx, CardStore.KEY_STUDENT_NO);
+    }
   }
 
   private hostContext(): common.Context | undefined {
@@ -151,6 +162,65 @@ struct SettingsPage {
     }).catch(() => {
       Ui.toast(this.getUIContext(), '同步失败，请稍后重试');
     });
+  }
+
+  /** 保存完美校园查询学号，并立即尝试刷新水电卡片。 */
+  private saveStudentNo(): void {
+    const ctx: common.Context | undefined = this.hostContext();
+    if (ctx === undefined) {
+      Ui.toast(this.getUIContext(), '无法获取应用上下文');
+      return;
+    }
+    const no: string = this.studentNo.trim();
+    this.studentNo = no;
+    CardStore.put(ctx, CardStore.KEY_STUDENT_NO, no).then(() => {
+      Ui.toast(this.getUIContext(), no.length > 0 ? '学号已保存，正在查询水电…' : '已清空水电查询学号');
+      if (no.length > 0) {
+        FeeSync.sync(ctx).then((ok: boolean) => {
+          Ui.toast(this.getUIContext(), ok ? '水电数据已更新' : '水电查询失败：请核对学号或稍后重试');
+        }).catch(() => {
+          Ui.toast(this.getUIContext(), '水电查询失败，请稍后重试');
+        });
+      }
+    });
+  }
+
+  private syncFee(): void {
+    const ctx: common.Context | undefined = this.hostContext();
+    if (ctx === undefined) {
+      return;
+    }
+    if (CardStore.getSync(ctx, CardStore.KEY_STUDENT_NO).trim().length === 0) {
+      Ui.toast(this.getUIContext(), '请先填写水电查询学号');
+      return;
+    }
+    Ui.toast(this.getUIContext(), '正在查询宿舍水电…');
+    FeeSync.sync(ctx).then((ok: boolean) => {
+      Ui.toast(this.getUIContext(), ok ? '水电数据已更新' : '水电查询失败，请核对学号或网络');
+    }).catch(() => {
+      Ui.toast(this.getUIContext(), '水电查询失败，请稍后重试');
+    });
+  }
+
+  private syncTodo(): void {
+    const ctx: common.Context | undefined = this.hostContext();
+    if (ctx === undefined) {
+      return;
+    }
+    Ui.toast(this.getUIContext(), '正在同步待办…');
+    TodoSync.sync(ctx).then((ok: boolean) => {
+      Ui.toast(this.getUIContext(), ok ? '待办已更新' : '待办同步失败：请确认已登录');
+    }).catch(() => {
+      Ui.toast(this.getUIContext(), '待办同步失败，请稍后重试');
+    });
+  }
+
+  private addTodoCard(): void {
+    CardManager.openTodoManager(this.getUIContext());
+  }
+
+  private addFeeCard(): void {
+    CardManager.openFeeManager(this.getUIContext());
   }
 
   @Builder
@@ -302,6 +372,143 @@ struct SettingsPage {
             .onClick(() => {
               this.syncCourse();
             })
+
+            Divider()
+              .strokeWidth(0.5)
+              .color($r('app.color.divider'))
+              .margin({ left: 16 })
+
+            Row() {
+              Column() {
+                Text('添加我的待办卡片')
+                  .fontSize(16)
+                  .fontColor($r('app.color.text_primary'))
+                Text('显示门户待办；登录后自动同步')
+                  .fontSize(12)
+                  .fontColor($r('app.color.text_secondary'))
+                  .margin({ top: 3 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              Image($r('app.media.ic_chevron'))
+                .width(14)
+                .height(14)
+                .objectFit(ImageFit.Contain)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+            .onClick(() => {
+              this.addTodoCard();
+            })
+
+            Divider()
+              .strokeWidth(0.5)
+              .color($r('app.color.divider'))
+              .margin({ left: 16 })
+
+            Row() {
+              Column() {
+                Text('添加宿舍水电卡片')
+                  .fontSize(16)
+                  .fontColor($r('app.color.text_primary'))
+                Text('显示电费、冷水、热水余额')
+                  .fontSize(12)
+                  .fontColor($r('app.color.text_secondary'))
+                  .margin({ top: 3 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              Image($r('app.media.ic_chevron'))
+                .width(14)
+                .height(14)
+                .objectFit(ImageFit.Contain)
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+            .onClick(() => {
+              this.addFeeCard();
+            })
+
+            Divider()
+              .strokeWidth(0.5)
+              .color($r('app.color.divider'))
+              .margin({ left: 16 })
+
+            Column() {
+              Row() {
+                Column() {
+                  Text('水电查询学号')
+                    .fontSize(16)
+                    .fontColor($r('app.color.text_primary'))
+                  Text('完美校园按学号查询，保留前导零；不需要密码')
+                    .fontSize(12)
+                    .fontColor($r('app.color.text_secondary'))
+                    .margin({ top: 3 })
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+              }
+              .width('100%')
+              Row() {
+                TextInput({ text: this.studentNo, placeholder: '例如 04252126' })
+                  .fontSize(14)
+                  .height(38)
+                  .layoutWeight(1)
+                  .onChange((value: string) => {
+                    this.studentNo = value;
+                  })
+                  .onSubmit(() => {
+                    this.saveStudentNo();
+                  })
+                Button('保存')
+                  .fontSize(13)
+                  .height(36)
+                  .margin({ left: 10 })
+                  .onClick(() => {
+                    this.saveStudentNo();
+                  })
+              }
+              .width('100%')
+              .margin({ top: 8 })
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+
+            Divider()
+              .strokeWidth(0.5)
+              .color($r('app.color.divider'))
+              .margin({ left: 16 })
+
+            Row() {
+              Column() {
+                Text('立即同步待办 / 水电')
+                  .fontSize(16)
+                  .fontColor($r('app.color.text_primary'))
+                Text('手动刷新卡片数据；失败时保留上次快照')
+                  .fontSize(12)
+                  .fontColor($r('app.color.text_secondary'))
+                  .margin({ top: 3 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              Row() {
+                Button('待办')
+                  .fontSize(12)
+                  .height(32)
+                  .margin({ right: 8 })
+                  .onClick(() => {
+                    this.syncTodo();
+                  })
+                Button('水电')
+                  .fontSize(12)
+                  .height(32)
+                  .onClick(() => {
+                    this.syncFee();
+                  })
+              }
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
           }
           .width('100%')
           .backgroundColor($r('app.color.card_bg'))

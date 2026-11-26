@@ -37,6 +37,14 @@
       "value": "显示待办与未读消息"
     },
     {
+      "name": "fee_card_name",
+      "value": "宿舍水电"
+    },
+    {
+      "name": "fee_card_desc",
+      "value": "显示宿舍电费、冷水、热水余额"
+    },
+    {
       "name": "tab_news",
       "value": "资讯"
     },

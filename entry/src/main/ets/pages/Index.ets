@@ -1,9 +1,11 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { CardNav } from '../common/CardNav';
 import { CourseSync } from '../common/CourseSync';
+import { FeeSync } from '../common/FeeSync';
 import { MaterialGate } from '../common/MaterialGate';
 import { PortalConfig } from '../common/PortalConfig';
 import { Session } from '../common/Session';
+import { TodoSync } from '../common/TodoSync';
 import { WebPageParams } from '../common/RouteParams';
 import { Ui } from '../common/Ui';
 import { AppPage } from '../view/AppPage';
@@ -85,6 +87,9 @@ struct Index {
       } else if (target === 'todo') {
         Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
           new WebPageParams('融合门户', PortalConfig.PC_PORTAL));
+      } else if (target === 'fee') {
+        Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+          new WebPageParams('宿舍水电', PortalConfig.WATER_CHARGES));
       }
     }, 300);
   }
@@ -100,6 +105,8 @@ struct Index {
     const ctx = this.getUIContext().getHostContext();
     if (ctx !== undefined && Session.isLoggedIn()) {
       CourseSync.ensureFresh(ctx);
+      TodoSync.ensureFresh(ctx);
+      FeeSync.ensureFresh(ctx);
     }
   }
 

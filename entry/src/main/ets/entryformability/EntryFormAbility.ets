@@ -28,9 +28,12 @@ export default class EntryFormAbility extends FormExtensionAbility {
     try {
       const formId: string = CardData.formId(want);
       const formName: string = CardData.formName(want);
-      const key: string = formName === 'todo_card'
-        ? CardStore.KEY_FORM_TODO
-        : CardStore.KEY_FORM_SCHEDULE;
+      let key: string = CardStore.KEY_FORM_SCHEDULE;
+      if (formName === 'todo_card') {
+        key = CardStore.KEY_FORM_TODO;
+      } else if (formName === 'fee_card') {
+        key = CardStore.KEY_FORM_FEE;
+      }
       CardStore.appendFormId(this.context, key, formId);
       hilog.info(DOMAIN, TAG, 'onAddForm name=%{public}s id=%{public}s', formName, formId);
       return CardData.build(this.context);
@@ -40,7 +43,11 @@ export default class EntryFormAbility extends FormExtensionAbility {
         'scheduleTitle': '今日课程',
         'scheduleLines': '打开「我的珠科」并登录后自动同步',
         'todoTitle': '我的待办',
-        'todoLines': '打开「我的珠科」并登录后自动同步',
+        'todoLines': '暂无待办',
+        'feeTitle': '宿舍水电',
+        'feeRoom': '',
+        'feeLines': '尚未获取水电数据',
+        'feeUpdatedText': '',
         'updatedText': ''
       };
       return formBindingData.createFormBindingData(data);
