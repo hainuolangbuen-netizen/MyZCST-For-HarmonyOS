@@ -19,8 +19,8 @@
 
 | 包 | 文件 | 大小 | SHA-256 |
 | --- | --- | --- | --- |
-| 手机 1.0.9 | `MyZCST-1.0.9-unsigned.hap` | 1,072,691 字节 | `16E1E250CC6778243B9CF7ECBD6F41231DD0C8DC03A7690C9B81141F0B122070` |
-| 手表 1.0.9 | `MyZCST-watch-1.0.9-unsigned.hap` | 199,491 字节 | `53A1C4255930C3FBBF61B8E445D19C57FAD11BD7734E9848C42AA491AFC46506` |
+| 手机 1.0.9 | `MyZCST-1.0.9-unsigned.hap` | 1,077,954 字节 | `BB9F1B88F59DD15C3739E01D2FF2422C0CE74816DF74C0C67F5FA0EFF44FB4BC` |
+| 手表 1.0.9 | `MyZCST-watch-1.0.9-unsigned.hap` | 199,491 字节 | `C0945C5354A75481218194641F12AC924F3E7E9404B7B9529DC02124C8A37987` |
 
 两个包都在 [Releases](https://github.com/xianyu-bxsj/MyZCST-For-HarmonyOS/releases/latest) 里。
 包是**未签名**的，安装前需要自行签名，或使用带重签名能力的调试工具。
