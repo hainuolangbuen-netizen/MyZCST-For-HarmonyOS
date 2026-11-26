@@ -125,7 +125,7 @@ export class CourseSync {
     if (todayLessons.length === 0) {
       lines.push('今天没有课程');
     } else {
-      for (const lesson of todayLessons.slice(0, 6)) {
+      for (const lesson of todayLessons) {
         const range: string = lesson.start + '-' + (lesson.start + lesson.span - 1);
         const period: string[] = CourseSync.periodRange(lesson.start, lesson.span);
         // 卡片按 | 拆成「开始|结束|节次|课程|教室|教师|周次」七列；
