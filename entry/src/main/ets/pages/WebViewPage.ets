@@ -27,7 +27,6 @@ struct WebViewPage {
   private controller: webview.WebviewController = new webview.WebviewController();
   private initialUrl: string = '';
   private waterBridge: WaterBridge = new WaterBridge();
-  private waterReloaded: boolean = false;
 
   aboutToAppear(): void {
     this.waterBridge.attach(getContext(this) as common.Context);
@@ -116,14 +115,6 @@ struct WebViewPage {
           this.currentUrl = event.url;
           hilog.info(DOMAIN, TAG, 'onPageEnd %{public}s', event.url);
           if (this.shouldScrape(event.url)) {
-            // 第一次进入水电页：先注入，再刷新一次，让脚本赶在页面 XHR 之前挂上
-            // fetch/XHR 钩子；否则首屏数据请求已经结束，只能靠 DOM 扫描。
-            if (!this.waterReloaded) {
-              this.waterReloaded = true;
-              setTimeout(() => {
-                this.controller.refresh();
-              }, 500);
-            }
             this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
             });
           }
