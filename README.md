@@ -1,7 +1,7 @@
 # 我的珠科 · 鸿蒙版
 
 > 珠海科技学院校园门户的 **HarmonyOS 原生客户端**，用 ArkTS + ArkUI 从零重写。
-> 当前版本：**1.0.1**（versionCode `1000001`，API 26）。
+> 当前版本：**1.0.2**（versionCode `1000002`，API 26）。
 
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-API%2026-000000?logo=harmonyos)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/ArkTS-ArkUI-1a73e8)](https://developer.huawei.com/consumer/cn/arkts)
@@ -56,7 +56,7 @@
 | **消息** | 学校通知公告、融合门户待办入口 |
 | **我的** | 登录状态、融合门户、学校官网、意见反馈、关于、帮助、设置 |
 | **设置** | 深色 / 浅色 / 跟随系统；沉浸光感 轻 / 标准 / 强 |
-| **桌面小组件** | 今日课表（登录后自动同步）、我的待办（占位），2×2 / 2×4 / 4×4 |
+| **桌面小组件** | 今日课程（登录后自动同步）、我的待办（占位），2×2 / 2×4 / 4×4 |
 
 ## 亮点一：沉浸光感
 
@@ -101,7 +101,7 @@ HarmonyOS 26 引入的 `uiMaterial.ImmersiveMaterial` 能让控件以"材质"而
 
 ## 亮点二：桌面小组件
 
-两张卡片：**今日课表**、**我的待办**，支持 2×2 / 2×4 / 4×4 三种尺寸，
+两张卡片：**今日课程**、**我的待办**，支持 2×2 / 2×4 / 4×4 三种尺寸，
 配置在 `entry/src/main/resources/base/profile/form_config.json`，
 数据经 `EntryFormAbility` 从 preferences（`common/CardStore.ets`）读取。
 登录成功后 `common/CourseSync.ets` 会自动拉取今日课程并主动刷新已添加的卡片。
@@ -261,7 +261,7 @@ myzcst-harmony/
 - [x] 「添加应用」面板支持按应用名搜索
 - [x] 首页搜索框可用：按名称过滤应用目录，点结果直接打开对应应用
 - [x] 桌面小组件点击直达：课表卡片 → 官方课表轻应用，待办卡片 → PC 融合门户
-- [x] 今日课表数据：登录成功后自动同步（依赖学校旧移动接口，接口改版会失效，见
+- [x] 今日课程数据：登录成功后自动同步（依赖学校旧移动接口，接口改版会失效，见
   [docs/BUGFIX-2026-11-26.md](docs/BUGFIX-2026-11-26.md)）
 - [x] 深色模式可读性：新增 `brand_navy_text` 等深色专用色，修复「我的卡片」标题与返回按钮对比度
 - [x] 水电缴费白屏：拦截支付 Scheme 与收银台弹窗，不再把当前页替换成空白页
