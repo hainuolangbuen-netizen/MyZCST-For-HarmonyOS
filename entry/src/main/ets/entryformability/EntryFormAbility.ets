@@ -37,7 +37,7 @@ export default class EntryFormAbility extends FormExtensionAbility {
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'onAddForm fallback: %{public}s', JSON.stringify(err));
       const data: Record<string, string> = {
-        'scheduleTitle': '今日课表',
+        'scheduleTitle': '今日课程',
         'scheduleLines': '打开「我的珠科」并登录后自动同步',
         'todoTitle': '我的待办',
         'todoLines': '打开「我的珠科」并登录后自动同步',

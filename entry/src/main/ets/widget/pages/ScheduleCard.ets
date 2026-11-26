@@ -1,19 +1,21 @@
 /**
- * 桌面卡片：今日课表。
+ * 桌面卡片：今日课程（对齐掌上猪科课程卡片的视觉）。
  *
  * 卡片 UI 只能读 LocalStorage 里的字段（数据由 EntryFormAbility 通过
- * formBindingData 注入），卡片自身不能联网、不能用 setTimeout，也不支持
- * ImmersiveMaterial（uiMaterial 的 ImmersiveMaterial 没有 @form 标记）。
+ * formBindingData 注入），卡片自身不能联网、不能用 setTimeout。
  *
- * 数据格式（CardData 写入）：
- *   scheduleSubtitle = "第13周 · 11-26 周四"
- *   scheduleLines    = "1-2|软件工程专业导论|博文楼阶梯D301\n3-4|习近平...|至善楼阶梯I203"
- * 兼容旧数据：没有 "|" 的行按整行展示。
+ * 数据格式（CourseSync 写入）：
+ *   scheduleSubtitle = "11月26日 · 星期四 · 第13周"
+ *   scheduleLines    = "08:10|09:50|1-2|软件工程专业导论|博文楼阶梯D301|周瑞洪|3-18周\n..."
+ * 兼容旧数据：没有 "|" 的行按纯文本展示。
+ *
+ * 完成状态在卡片渲染时按当前时间计算：下课时间已过 → 整张课程卡片变浅；
+ * 未上课/正在上课保持原色。
  */
 @Entry
 @Component
 struct ScheduleCard {
-  @LocalStorageProp('scheduleTitle') scheduleTitle: string = '今日课表';
+  @LocalStorageProp('scheduleTitle') scheduleTitle: string = '今日课程';
   @LocalStorageProp('scheduleSubtitle') scheduleSubtitle: string = '';
   @LocalStorageProp('scheduleLines') scheduleLines: string = '打开「我的珠科」并登录后自动同步';
   @LocalStorageProp('updatedText') updatedText: string = '';
@@ -35,79 +37,168 @@ struct ScheduleCard {
     return index < parts.length ? parts[index] : '';
   }
 
-  @Builder
-  courseRow(line: string) {
-    Row() {
-      Text(this.part(line, 0))
-        .fontSize(10)
-        .fontColor('#8A8F99')
-        .width(32)
+  private toMinutes(hhmm: string): number {
+    if (hhmm.length === 0) {
+      return -1;
+    }
+    const colon: number = hhmm.indexOf(':');
+    if (colon <= 0) {
+      return -1;
+    }
+    const h: number = Number(hhmm.substring(0, colon));
+    const m: number = Number(hhmm.substring(colon + 1));
+    if (isNaN(h) || isNaN(m)) {
+      return -1;
+    }
+    return h * 60 + m;
+  }
 
+  /** 下课时间已过 → 已完成（颜色变浅）。 */
+  private completed(line: string): boolean {
+    const end: number = this.toMinutes(this.part(line, 1));
+    if (end < 0) {
+      return false;
+    }
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes() >= end;
+  }
+
+  private meta(line: string): string {
+    const items: string[] = [];
+    const room: string = this.part(line, 4);
+    const teacher: string = this.part(line, 5);
+    const weeks: string = this.part(line, 6);
+    if (room.length > 0) {
+      items.push(room);
+    }
+    if (teacher.length > 0) {
+      items.push(teacher);
+    }
+    if (weeks.length > 0) {
+      items.push(weeks);
+    }
+    return items.join(' · ');
+  }
+
+  private courseBackground(index: number, done: boolean): string {
+    if (done) {
+      // 已完成：低饱和的浅灰蓝，和未上课的彩色卡片区分开（视觉上"变浅"）。
+      return '#1A2330';
+    }
+    const tones: string[] = ['#17352D', '#2A2340', '#1B2F45', '#3A2B1E', '#1D2B3A'];
+    return tones[index % tones.length];
+  }
+
+  private courseAccent(index: number, done: boolean): string {
+    if (done) {
+      return '#566273';
+    }
+    const tones: string[] = ['#4FD1A5', '#A88BE8', '#62A6E8', '#E0A45E', '#7FB8D8'];
+    return tones[index % tones.length];
+  }
+
+  @Builder
+  courseCard(line: string, index: number) {
+    Row() {
+      // 左侧：开始时间 + 节次
+      Column() {
+        Text(this.part(line, 0).length > 0 ? this.part(line, 0) : '--:--')
+          .fontSize(19)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.completed(line) ? '#8A95A5' : '#F2F6FC')
+        Text(this.part(line, 2) + '节')
+          .fontSize(10)
+          .fontColor(this.completed(line) ? '#778394' : '#AAB8CA')
+          .margin({ top: 3 })
+      }
+      .width(62)
+      .alignItems(HorizontalAlign.Start)
+
+      // 左侧色条：区分课程，已完成时变浅
       Column()
         .width(3)
-        .height(30)
+        .height(52)
         .borderRadius(2)
-        .backgroundColor('#011F5B')
-        .margin({ right: 8 })
+        .backgroundColor(this.courseAccent(index, this.completed(line)))
+        .margin({ left: 2, right: 10 })
 
+      // 右侧：课程名 + 完成徽标 + 教室/教师/周次 + 下课时间
       Column() {
-        Text(this.part(line, 1))
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#1F2937')
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-        if (this.part(line, 2).length > 0) {
-          Text(this.part(line, 2))
-            .fontSize(10)
-            .fontColor('#8A8F99')
+        Row() {
+          Text(this.part(line, 3))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.completed(line) ? '#8A95A5' : '#F2F6FC')
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+          if (this.completed(line)) {
+            Text('✓ 已完成')
+              .fontSize(9)
+              .fontColor('#8A95A5')
+              .backgroundColor('#243040')
+              .borderRadius(9)
+              .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+              .margin({ left: 6 })
+          }
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        if (this.meta(line).length > 0) {
+          Text(this.meta(line))
+            .fontSize(12)
+            .fontColor(this.completed(line) ? '#778394' : '#AAB8CA')
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .margin({ top: 2 })
+            .margin({ top: 5 })
+            .width('100%')
+        }
+
+        if (this.part(line, 1).length > 0) {
+          Text('至 ' + this.part(line, 1))
+            .fontSize(11)
+            .fontColor(this.completed(line) ? '#778394' : '#AAB8CA')
+            .margin({ top: 4 })
             .width('100%')
         }
       }
-      .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
+    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+    .backgroundColor(this.courseBackground(index, this.completed(line)))
+    .borderRadius(14)
     .margin({ top: 8 })
   }
 
   build() {
     Column() {
+      // 标题 + 日期/周次
       Row() {
         Text(this.scheduleTitle)
-          .fontSize(15)
+          .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#1F2937')
+          .fontColor('#F2F6FC')
         Blank()
-        Text(this.updatedText)
-          .fontSize(9)
-          .fontColor('#8A8F99')
+        Text(this.scheduleSubtitle)
+          .fontSize(10)
+          .fontColor('#AAB8CA')
           .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
+          .textAlign(TextAlign.End)
+          .margin({ left: 8 })
       }
       .width('100%')
 
-      if (this.scheduleSubtitle.length > 0) {
-        Text(this.scheduleSubtitle)
-          .fontSize(10)
-          .fontColor('#8A8F99')
-          .width('100%')
-          .margin({ top: 2 })
-      }
-
-      Divider()
-        .color('#EEF1F5')
-        .strokeWidth(0.5)
-        .margin({ top: 8, bottom: 2 })
-
+      // 课程列表 / 空态
       if (this.lines().length === 0) {
         Column() {
           Text('今天没有课程')
-            .fontSize(12)
-            .fontColor('#8A8F99')
+            .fontSize(13)
+            .fontColor('#AAB8CA')
         }
         .width('100%')
         .layoutWeight(1)
@@ -116,16 +207,15 @@ struct ScheduleCard {
         Column() {
           ForEach(this.lines(), (line: string, index: number) => {
             if (this.structured(line)) {
-              this.courseRow(line)
+              this.courseCard(line, index)
             } else {
-              // 兼容旧版写入的纯文本行 / 加载提示
               Text(line)
-                .fontSize(11)
-                .fontColor('#6B7280')
+                .fontSize(12)
+                .fontColor('#AAB8CA')
                 .width('100%')
                 .maxLines(3)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .margin({ top: 8 })
+                .margin({ top: 10 })
             }
           }, (line: string, index: number) => index + '-' + line)
         }
@@ -134,12 +224,21 @@ struct ScheduleCard {
         .justifyContent(FlexAlign.Start)
         .alignItems(HorizontalAlign.Start)
       }
+
+      if (this.updatedText.length > 0) {
+        Text(this.updatedText)
+          .fontSize(8)
+          .fontColor('#5E6B7D')
+          .width('100%')
+          .textAlign(TextAlign.End)
+          .margin({ top: 4 })
+      }
     }
     .width('100%')
     .height('100%')
-    .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor('#FFFFFF')
-    .borderRadius(16)
+    .padding({ left: 16, right: 16, top: 14, bottom: 12 })
+    .backgroundColor('#0C1420')
+    .borderRadius(20)
     .onClick(() => {
       postCardAction(this, {
         action: 'router',

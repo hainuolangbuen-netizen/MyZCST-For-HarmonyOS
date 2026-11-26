@@ -36,9 +36,24 @@ class Lesson {
   span: number = 2;
   name: string = '';
   room: string = '';
+  teacher: string = '';
+  weeks: string = '';
 }
 
 export class CourseSync {
+  /** 教务节次时间表：第 1 节开始时间 / 第 1 节结束时间。 */
+  private static readonly PERIODS: string[][] = [
+    ['08:10', '08:55'],
+    ['09:05', '09:50'],
+    ['10:10', '10:55'],
+    ['11:05', '11:50'],
+    ['14:00', '14:45'],
+    ['14:55', '15:40'],
+    ['16:00', '16:45'],
+    ['16:55', '17:40'],
+    ['19:00', '19:45'],
+    ['19:55', '20:40']
+  ];
   /** 避免登录页与 Index.onPageShow 同时触发导致重复请求。 */
   private static syncing: boolean = false;
   /** 上次尝试时间（毫秒），失败后 1 分钟内不再重试，防止每次切页签都打接口。 */
@@ -112,15 +127,18 @@ export class CourseSync {
     } else {
       for (const lesson of todayLessons.slice(0, 6)) {
         const range: string = lesson.start + '-' + (lesson.start + lesson.span - 1);
-        // 卡片按 | 拆成「节次 / 课程 / 教室」三列；没有分隔符的旧数据按整行显示。
-        lines.push(range + '|' + lesson.name + '|' + lesson.room);
+        const period: string[] = CourseSync.periodRange(lesson.start, lesson.span);
+        // 卡片按 | 拆成「开始|结束|节次|课程|教室|教师|周次」七列；
+        // 没有分隔符的旧数据按整行显示。
+        lines.push(period[0] + '|' + period[1] + '|' + range + '|' + lesson.name + '|' +
+          lesson.room + '|' + lesson.teacher + '|' + lesson.weeks);
       }
     }
 
     const weekText: string = week > 0 ? ('第' + week + '周') : '';
     await CardStore.put(context, CardStore.KEY_SCHEDULE, lines.join('\n'));
     await CardStore.put(context, CardStore.KEY_SUBTITLE,
-      weekText.length > 0 ? (weekText + ' · ' + CourseSync.dateText()) : CourseSync.dateText());
+      weekText.length > 0 ? (CourseSync.dateText() + ' · ' + weekText) : CourseSync.dateText());
     await CardStore.put(context, CardStore.KEY_UPDATED, CourseSync.stamp());
     await CardStore.put(context, CardStore.KEY_SYNC_AT, String(Date.now()));
     await CardData.updateAll(context);
@@ -195,13 +213,21 @@ export class CourseSync {
     return mm + '-' + dd + ' ' + hh + ':' + mi + ' 已同步';
   }
 
-  /** 卡片副标题里的日期：11-26 周四。 */
+  /** 卡片副标题里的日期：11月26日 · 星期四。 */
   private static dateText(): string {
     const d = new Date();
-    const mm: string = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : '' + (d.getMonth() + 1);
-    const dd: string = d.getDate() < 10 ? '0' + d.getDate() : '' + d.getDate();
-    const names: string[] = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    return mm + '-' + dd + ' ' + names[d.getDay()];
+    const names: string[] = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 · ' + names[d.getDay()];
+  }
+
+  /** 由起始节次 + 连堂节数换算上课/下课时间；超出表范围时返回空串。 */
+  private static periodRange(start: number, span: number): string[] {
+    const first: number = start - 1;
+    const last: number = start + span - 2;
+    if (first < 0 || last >= CourseSync.PERIODS.length) {
+      return ['', ''];
+    }
+    return [CourseSync.PERIODS[first][0], CourseSync.PERIODS[last][1]];
   }
 
   /** 在响应里递归找 currentWeek（不同版本可能叫 zc/week）。 */
@@ -289,6 +315,8 @@ export class CourseSync {
       lesson.start = CourseSync.num(rec, ['jc', 'startSection', 'start', 'sectionStart'], 0);
       lesson.span = CourseSync.num(rec, ['jccd', 'sectionCount', 'span', 'step'], 2);
       lesson.room = CourseSync.pick(rec, ['jsdd', 'roomName', 'room', 'classRoom']);
+      lesson.teacher = CourseSync.pick(rec, ['jsxm', 'lsmc', 'teacherName', 'teacher', 'jsName', 'jsmc']);
+      lesson.weeks = CourseSync.pick(rec, ['zcd', 'zcmc', 'weeks', 'weekStr', 'zcmcStr']);
       // 根节点/包裹层也可能带 name 字段（学期名等），只有同时有星期和节次才算课程。
       if (lesson.day > 0 && lesson.start > 0) {
         if (!CourseSync.duplicated(out, lesson)) {
