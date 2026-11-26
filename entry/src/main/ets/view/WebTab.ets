@@ -1,5 +1,11 @@
 import { webview } from '@kit.ArkWeb';
+import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { Downloader } from '../common/Downloader';
+import { WebLink } from '../common/WebLink';
+import { WATER_SCRAPE_JS, WaterBridge, isWaterUrl } from '../common/WaterBridge';
+import { WebPageParams } from '../common/RouteParams';
+import { Ui } from '../common/Ui';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'myzcst-web';
@@ -18,6 +24,11 @@ export struct WebTab {
   @StorageProp('topAvoidPx') topAvoidPx: number = 0;
   @State progress: number = 100;
   private controller: webview.WebviewController = new webview.WebviewController();
+  private waterBridge: WaterBridge = new WaterBridge();
+
+  aboutToAppear(): void {
+    this.waterBridge.attach(getContext(this) as common.Context);
+  }
 
   /**
    * 窗口是 setWindowLayoutFullScreen(true) 的全屏布局，网页从 y=0 开始画，
@@ -44,15 +55,45 @@ export struct WebTab {
         .mixedMode(MixedMode.Compatible)
         .zoomAccess(false)
         .multiWindowAccess(true)
+        .javaScriptProxy({
+          object: this.waterBridge,
+          name: '__myzcstWater',
+          methodList: ['save', 'saveRaw'],
+          controller: this.controller
+        })
         .onProgressChange((event) => {
           this.progress = event.newProgress;
         })
         .onPageBegin((event) => {
           hilog.info(DOMAIN, TAG, 'onPageBegin url=%{public}s', event.url);
+          if (isWaterUrl(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
+          }
         })
         .onPageEnd((event) => {
           this.progress = 100;
           hilog.info(DOMAIN, TAG, 'onPageEnd url=%{public}s', event.url);
+          if (isWaterUrl(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
+          }
+        })
+        .onLoadIntercept((event) => {
+          const url: string = event.data.getRequestUrl();
+          if (!event.data.isMainFrame()) {
+            return false;
+          }
+          if (WebLink.isBlank(url)) {
+            Ui.toast(this.getUIContext(), '已拦截空白页');
+            return true;
+          }
+          if (WebLink.isWebUrl(url) && !WebLink.isPaymentUrl(url)) {
+            return false;
+          }
+          hilog.info(DOMAIN, TAG, 'intercept url: %{public}s', url.substring(0, 80));
+          WebLink.openExternal(this.getUIContext(), url);
+          return true;
         })
         .onErrorReceive((event) => {
           hilog.error(DOMAIN, TAG, 'onErrorReceive url=%{public}s err=%{public}s',
@@ -63,17 +104,29 @@ export struct WebTab {
             event.request.getRequestUrl(), event.response.getResponseCode());
         })
         .onWindowNew((event) => {
-          // 门户 H5 里有多处 window.open / target=_blank。
-          // 把"新窗口"的内容接管到同一个 Web 组件里，否则用户点了链接会没反应。
+          // 同 WebViewPage：不要用当前 controller 接管新窗口，否则 target 为空或
+          // 支付 Scheme 时会把原页面换成空白页。
           hilog.info(DOMAIN, TAG, 'onWindowNew -> %{public}s', event.targetUrl);
-          if (event.targetUrl.length > 0) {
-            event.handler.setWebController(this.controller);
+          const target: string = event.targetUrl;
+          event.handler.setWebController(null);
+          if (target.length === 0) {
+            Ui.toast(this.getUIContext(), '已拦截空白弹窗');
+            return;
           }
+          if (!WebLink.isWebUrl(target)) {
+            WebLink.openExternal(this.getUIContext(), target);
+            return;
+          }
+          if (WebLink.isPaymentUrl(target)) {
+            WebLink.openExternal(this.getUIContext(), target);
+            return;
+          }
+          Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+            new WebPageParams('详情', target));
         })
         .onDownloadStart((event) => {
-          // TODO: 接 @ohos.request 下载到 filesDir 并 startAbility 打开。
-          // 第一版只记录，附件下载仍是待办项。
           hilog.info(DOMAIN, TAG, 'download start: %{public}s (%{public}s)', event.url, event.mimetype);
+          Downloader.start(this.getUIContext(), event.url, event.contentDisposition, event.mimetype);
         })
     }
     .width('100%')

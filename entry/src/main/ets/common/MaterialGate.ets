@@ -58,10 +58,12 @@ export class MaterialGate {
   /**
    * 底部悬浮页签用的沉浸材质，按用户设置的强度分三档：
    *
-   *   轻   ULTRA_THIN  #1AFFFFFF  —— 最通透，几乎只剩一点点磨砂，并打开 colorInvert
-   *   标准 REGULAR     #33FFFFFF  —— 默认档
-   *   强   ULTRA_THICK #59FFFFFF  —— 模糊最重、底色最实
+   *   轻   ULTRA_THIN  #33000000（深色）—— 最通透，几乎只剩一点点磨砂，并打开 colorInvert
+   *   标准 REGULAR     #59000000（深色）—— 默认档
+   *   强   ULTRA_THICK #80000000（深色）—— 模糊最重、底色最实
    *
+   * 深色模式必须用**黑色**半透明材质；之前深色用 #59FFFFFF（35% 白），
+   * 强档叠在深色桌面上会变成一整块亮灰，文字/图标对比度反而崩掉。   *
    * colorInvert 是"光感"里最能被感知的一环：它让材质子树里的文字/图标
    * 自动取背景补色（uiMaterial.d.ts:342 的说明），但**只有 THIN / ULTRA_THIN
    * 且应用沉浸光感强度足够时才会触发**，所以放在"轻"档，而不是"强"档
@@ -72,8 +74,8 @@ export class MaterialGate {
    */
   static tabMaterial(strength: string): uiMaterial.ImmersiveMaterial {
     let style: uiMaterial.ImmersiveStyle = uiMaterial.ImmersiveStyle.REGULAR;
-    // 材质底色按主题取资源：浅色模式用「淡淡的黑」、深色模式用「淡淡的白」，
-    // 否则纯白叠在纯白页面上完全看不出来（这正是「感觉光感有点弱」的主因）。
+    // 材质底色按主题取资源：浅色模式用淡黑，深色模式用更实的黑，
+    // 避免深色模式下强档变成一块亮灰色。
     let color: ResourceColor = $r('app.color.bar_frost_standard');
     let invert: boolean = false;
     if (strength === GLASS_THIN) {

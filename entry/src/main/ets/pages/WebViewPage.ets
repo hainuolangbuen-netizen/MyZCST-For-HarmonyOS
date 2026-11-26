@@ -1,5 +1,9 @@
 import { webview } from '@kit.ArkWeb';
+import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { Downloader } from '../common/Downloader';
+import { WebLink } from '../common/WebLink';
+import { WATER_SCRAPE_JS, WaterBridge, isWaterUrl } from '../common/WaterBridge';
 import { WebPageParams } from '../common/RouteParams';
 import { Ui } from '../common/Ui';
 
@@ -22,8 +26,10 @@ struct WebViewPage {
   @State currentUrl: string = '';
   private controller: webview.WebviewController = new webview.WebviewController();
   private initialUrl: string = '';
+  private waterBridge: WaterBridge = new WaterBridge();
 
   aboutToAppear(): void {
+    this.waterBridge.attach(getContext(this) as common.Context);
     const params: WebPageParams | undefined =
       Ui.params(this.getUIContext()) as WebPageParams | undefined;
     if (params !== undefined) {
@@ -37,12 +43,18 @@ struct WebViewPage {
     return this.getUIContext().px2vp(this.topAvoidPx);
   }
 
+  /** 页面标题/URL 任一命中水电都注入；有些智能水电页 URL 不含 water。 */
+  private shouldScrape(url: string): boolean {
+    return isWaterUrl(url) || this.title.indexOf('水电') >= 0
+      || this.title.indexOf('水费') >= 0 || this.title.indexOf('电费') >= 0;
+  }
+
   build() {
     Column() {
       Row() {
         Text('‹  返回')
           .fontSize(16)
-          .fontColor($r('app.color.brand_navy'))
+          .fontColor($r('app.color.brand_navy_text'))
           .onClick(() => {
             Ui.back(this.getUIContext());
           })
@@ -83,21 +95,75 @@ struct WebViewPage {
         .mixedMode(MixedMode.Compatible)
         .zoomAccess(true)
         .multiWindowAccess(true)
+        .javaScriptProxy({
+          object: this.waterBridge,
+          name: '__myzcstWater',
+          methodList: ['save', 'saveRaw'],
+          controller: this.controller
+        })
         .onProgressChange((event) => {
           this.progress = event.newProgress;
+        })
+        .onPageBegin((event) => {
+          if (this.shouldScrape(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
+          }
         })
         .onPageEnd((event) => {
           this.progress = 100;
           this.currentUrl = event.url;
           hilog.info(DOMAIN, TAG, 'onPageEnd %{public}s', event.url);
-        })
-        .onWindowNew((event) => {
-          if (event.targetUrl.length > 0) {
-            event.handler.setWebController(this.controller);
+          if (this.shouldScrape(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
           }
         })
+        // 支付/第三方 App 的 Scheme（weixin://、alipays://、intent:// 等）不能让
+        // Web 组件直接导航，否则会得到一张空白页且回不去；这里交给系统拉起对应 App。
+        .onLoadIntercept((event) => {
+          const url: string = event.data.getRequestUrl();
+          if (!event.data.isMainFrame()) {
+            return false;
+          }
+          if (WebLink.isBlank(url)) {
+            Ui.toast(this.getUIContext(), '已拦截空白页');
+            return true;
+          }
+          if (WebLink.isWebUrl(url) && !WebLink.isPaymentUrl(url)) {
+            return false;
+          }
+          hilog.info(DOMAIN, TAG, 'intercept url: %{public}s', url.substring(0, 80));
+          WebLink.openExternal(this.getUIContext(), url);
+          return true;
+        })
+        .onWindowNew((event) => {
+          // 旧实现把新窗口塞回同一个 controller，缴费页的支付弹窗会把当前页
+          // 替换成空白页（正是"大面积白屏、卡住"的来源）。改成：
+          //   - 空地址：直接拒绝新窗口；
+          //   - 支付 Scheme：交给系统 App；
+          //   - http(s)：在 App 内新开一个 WebViewPage，保留当前页。
+          const target: string = event.targetUrl;
+          hilog.info(DOMAIN, TAG, 'onWindowNew -> %{public}s', target);
+          event.handler.setWebController(null);
+          if (target.length === 0) {
+            Ui.toast(this.getUIContext(), '已拦截空白弹窗');
+            return;
+          }
+          if (!WebLink.isWebUrl(target)) {
+            WebLink.openExternal(this.getUIContext(), target);
+            return;
+          }
+          if (WebLink.isPaymentUrl(target)) {
+            WebLink.openExternal(this.getUIContext(), target);
+            return;
+          }
+          Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+            new WebPageParams('详情', target));
+        })
         .onDownloadStart((event) => {
-          hilog.info(DOMAIN, TAG, 'download start: %{public}s', event.url);
+          hilog.info(DOMAIN, TAG, 'download start: %{public}s (%{public}s)', event.url, event.mimetype);
+          Downloader.start(this.getUIContext(), event.url, event.contentDisposition, event.mimetype);
         })
     }
     .width('100%')

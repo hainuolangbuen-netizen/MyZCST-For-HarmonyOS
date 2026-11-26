@@ -1,0 +1,18 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "我的珠科手表端：课表与水电" },
+    { "name": "ability_desc", "value": "查看今日课程、本周课表与宿舍水电" },
+    { "name": "app_name", "value": "我的珠科" },
+    { "name": "tab_course", "value": "课程" },
+    { "name": "tab_week", "value": "课表" },
+    { "name": "tab_fee", "value": "水电" },
+    { "name": "course_empty_today", "value": "今天没有课" },
+    { "name": "course_empty_left", "value": "今天没有课了" },
+    { "name": "course_next", "value": "下一节" },
+    { "name": "fee_empty", "value": "暂无水电数据" },
+    { "name": "fee_no_room", "value": "未绑定宿舍" },
+    { "name": "sync_waiting", "value": "等待手机同步" },
+    { "name": "sync_offline", "value": "离线数据" },
+    { "name": "sync_need_login", "value": "请先在手机上登录" }
+  ]
+}

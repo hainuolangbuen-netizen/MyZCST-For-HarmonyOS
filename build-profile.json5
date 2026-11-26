@@ -24,6 +24,19 @@
             "useNormalizedOHMUrl": true
           }
         }
+      },
+      {
+        // 手表端产品：与手机同一个 App Pack，但只把 wearable 模块打进这一路。
+        "name": "wearable",
+        "targetSdkVersion": "26.0.0",
+        "compatibleSdkVersion": "26.0.0",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
       }
     ],
     "buildModeSet": [
@@ -43,7 +56,20 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default"
+            "default",
+            "wearable"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wearable",
+      "srcPath": "./wearable",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "wearable"
           ]
         }
       ]

@@ -2,6 +2,7 @@ import { formBindingData, FormExtensionAbility, formInfo, formProvider } from '@
 import { Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { CardData } from '../common/CardData';
 import { CardStore } from '../common/CardStore';
 
 const DOMAIN: number = 0x0000;
@@ -16,27 +17,41 @@ const TAG: string = 'myzcst-form';
  *
  * form_config.json 里两张卡片都开了 updateEnabled，updateDuration=1
  * 表示每 30 分钟由系统回调一次 onUpdateForm。
+ *
+ * 另外在 onAddForm 里登记 formId：主 App 登录后同步完课程时，用 formId 主动
+ * updateForm，卡片无需等 30 分钟就能显示当天课程。
  */
 export default class EntryFormAbility extends FormExtensionAbility {
-  private buildBindingData(): formBindingData.FormBindingData {
-    const context = this.context;
-    const schedule: string = CardStore.getSync(context, CardStore.KEY_SCHEDULE);
-    const todo: string = CardStore.getSync(context, CardStore.KEY_TODO);
-    const updated: string = CardStore.getSync(context, CardStore.KEY_UPDATED);
-
-    const data: Record<string, string> = {
-      'scheduleTitle': '今日课表',
-      'scheduleLines': schedule.length > 0 ? schedule : '打开「我的珠科」并登录后自动同步',
-      'todoTitle': '我的待办',
-      'todoLines': todo.length > 0 ? todo : '打开「我的珠科」并登录后自动同步',
-      'updatedText': updated
-    };
-    return formBindingData.createFormBindingData(data);
-  }
-
   onAddForm(want: Want): formBindingData.FormBindingData {
-    hilog.info(DOMAIN, TAG, '%{public}s', 'onAddForm');
-    return this.buildBindingData();
+    // onAddForm 必须同步返回且不能抛异常，否则卡片添加会失败；任何 preferences
+    // 读写的异常都在这里兜住，退回一份占位数据保证卡片一定能创建出来。
+    try {
+      const formId: string = CardData.formId(want);
+      const formName: string = CardData.formName(want);
+      let key: string = CardStore.KEY_FORM_SCHEDULE;
+      if (formName === 'todo_card') {
+        key = CardStore.KEY_FORM_TODO;
+      } else if (formName === 'fee_card') {
+        key = CardStore.KEY_FORM_FEE;
+      }
+      CardStore.appendFormId(this.context, key, formId);
+      hilog.info(DOMAIN, TAG, 'onAddForm name=%{public}s id=%{public}s', formName, formId);
+      return CardData.build(this.context);
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'onAddForm fallback: %{public}s', JSON.stringify(err));
+      const data: Record<string, string> = {
+        'scheduleTitle': '今日课程',
+        'scheduleLines': '打开「我的珠科」并登录后自动同步',
+        'todoTitle': '我的待办',
+        'todoLines': '暂无待办',
+        'feeTitle': '智能水电',
+        'feeRoom': '',
+        'feeLines': '尚未获取水电数据',
+        'feeUpdatedText': '',
+        'updatedText': ''
+      };
+      return formBindingData.createFormBindingData(data);
+    }
   }
 
   onCastToNormalForm(formId: string): void {
@@ -45,7 +60,7 @@ export default class EntryFormAbility extends FormExtensionAbility {
 
   onUpdateForm(formId: string): void {
     hilog.info(DOMAIN, TAG, 'onUpdateForm %{public}s', formId);
-    formProvider.updateForm(formId, this.buildBindingData()).catch((err: BusinessError) => {
+    formProvider.updateForm(formId, CardData.build(this.context)).catch((err: BusinessError) => {
       hilog.error(DOMAIN, TAG, 'updateForm failed: %{public}s', JSON.stringify(err));
     });
   }
@@ -60,6 +75,7 @@ export default class EntryFormAbility extends FormExtensionAbility {
 
   onRemoveForm(formId: string): void {
     hilog.info(DOMAIN, TAG, 'onRemoveForm %{public}s', formId);
+    CardStore.removeFormId(this.context, formId);
   }
 
   onAcquireFormState(want: Want): formInfo.FormState {

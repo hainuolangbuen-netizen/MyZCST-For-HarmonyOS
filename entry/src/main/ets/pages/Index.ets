@@ -1,7 +1,13 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { CardNav } from '../common/CardNav';
+import { CourseSync } from '../common/CourseSync';
+import { FeeSync } from '../common/FeeSync';
 import { MaterialGate } from '../common/MaterialGate';
 import { PortalConfig } from '../common/PortalConfig';
 import { Session } from '../common/Session';
+import { TodoSync } from '../common/TodoSync';
+import { WebPageParams } from '../common/RouteParams';
+import { Ui } from '../common/Ui';
 import { AppPage } from '../view/AppPage';
 import { HomePage } from '../view/HomePage';
 import { MessagePage } from '../view/MessagePage';
@@ -47,14 +53,45 @@ struct Index {
    * 用 @StorageProp 订阅后 barFloatingStyle 会自动重建、立即生效。
    */
   @StorageProp('glassLevel') @Watch('onGlassChange') glassLevel: string = 'standard';
+  /**
+   * 桌面卡片点击后要打开的页面。EntryAbility 把 Want 里的 target 写进 AppStorage，
+   * 这里用 @StorageProp + @Watch 消费；冷启动时 aboutToAppear 会主动取一次。
+   */
+  @StorageProp('cardTarget') @Watch('onCardTarget') cardTarget: string = '';
   private tabsController: TabsController = new TabsController();
 
   aboutToAppear(): void {
     this.materialReady = MaterialGate.supported();
     this.syncLogin();
+    // 卡片冷启动：AppStorage 里的 target 可能早于本页创建，这里主动消费一次。
+    this.onCardTarget();
     hilog.info(DOMAIN, TAG,
       'immersive supported=%{public}s level=%{public}d appState=%{public}d glass=%{public}s',
       this.materialReady, MaterialGate.level(), MaterialGate.state(), this.glassLevel);
+  }
+
+  /**
+   * 卡片点击路由：课表 → 官方课表轻应用；待办 → PC 融合门户（待办入口）。
+   * 延迟 300ms 再 push，保证外壳与 Tabs 已完成首帧布局。
+   */
+  onCardTarget(): void {
+    const target: string = CardNav.take();
+    if (target.length === 0) {
+      return;
+    }
+    hilog.info(DOMAIN, TAG, 'consume card target %{public}s', target);
+    setTimeout(() => {
+      if (target === 'schedule') {
+        Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+          new WebPageParams('我的课表', PortalConfig.LIGHT_SCHEDULE));
+      } else if (target === 'todo') {
+        Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+          new WebPageParams('融合门户', PortalConfig.PC_PORTAL));
+      } else if (target === 'fee') {
+        Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+          new WebPageParams('宿舍水电', PortalConfig.WATER_CHARGES));
+      }
+    }, 300);
   }
 
   onGlassChange(): void {
@@ -64,6 +101,13 @@ struct Index {
   /** 从登录页 router.back() 回来、或从后台切回前台都会走这里。 */
   onPageShow(): void {
     this.syncLogin();
+    // 登录完成/回到前台时按 TTL 刷新今日课表；数据写入 CardStore 并主动刷新桌面卡片。
+    const ctx = this.getUIContext().getHostContext();
+    if (ctx !== undefined && Session.isLoggedIn()) {
+      CourseSync.ensureFresh(ctx);
+      TodoSync.ensureFresh(ctx);
+      FeeSync.ensureFresh(ctx);
+    }
   }
 
   private syncLogin(): void {

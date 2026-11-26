@@ -3,7 +3,9 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { common } from '@kit.AbilityKit';
 import { PortalConfig } from '../common/PortalConfig';
+import { CourseSync } from '../common/CourseSync';
 import { Session } from '../common/Session';
+import { STUDENT_SCRAPE_JS, StudentBridge } from '../common/StudentBridge';
 import { Ui } from '../common/Ui';
 
 const DOMAIN: number = 0x0000;
@@ -27,8 +29,13 @@ struct LoginPage {
   @State hint: string = '正在跳转统一身份认证…';
   @State done: boolean = false;
   private controller: webview.WebviewController = new webview.WebviewController();
+  private studentBridge: StudentBridge = new StudentBridge();
   /** 防止 onPageEnd 反复触发导致重复保存 / 重复返回。 */
   private handled: boolean = false;
+
+  aboutToAppear(): void {
+    this.studentBridge.attach(getContext(this) as common.Context);
+  }
 
   private topPad(): number {
     return this.getUIContext().px2vp(this.topAvoidPx);
@@ -77,11 +84,12 @@ struct LoginPage {
     this.handled = true;
     this.done = true;
     this.hint = name.length > 0 ? ('登录成功：' + name) : '登录成功';
+    this.hint = this.hint + '，正在同步课程…';
     const ctx: common.Context | undefined = Ui.context(this.getUIContext());
     const goBack: () => void = () => {
       setTimeout(() => {
         Ui.back(this.getUIContext());
-      }, 900);
+      }, 500);
     };
     if (ctx === undefined) {
       goBack();
@@ -89,6 +97,9 @@ struct LoginPage {
     }
     Session.saveName(ctx, name)
       .then(() => {
+        // 后台同步今日课表，不阻塞返回；写完 CardStore 后会主动刷新已添加的卡片。
+        CourseSync.sync(ctx).catch(() => {
+        });
         goBack();
       })
       .catch(() => {
@@ -102,7 +113,7 @@ struct LoginPage {
       Row() {
         Text('‹  返回')
           .fontSize(16)
-          .fontColor($r('app.color.brand_navy'))
+          .fontColor($r('app.color.brand_navy_text'))
           .onClick(() => {
             Ui.back(this.getUIContext());
           })
@@ -150,12 +161,29 @@ struct LoginPage {
         .mixedMode(MixedMode.Compatible)
         .zoomAccess(true)
         .multiWindowAccess(true)
+        .javaScriptProxy({
+          object: this.studentBridge,
+          name: '__myzcstUser',
+          methodList: ['save'],
+          controller: this.controller
+        })
         .onProgressChange((event) => {
           this.progress = event.newProgress;
+        })
+        .onPageBegin((event) => {
+          if (PortalConfig.isCasUrl(event.url)) {
+            this.controller.runJavaScript(STUDENT_SCRAPE_JS).catch(() => {
+            });
+          }
         })
         .onPageEnd((event) => {
           this.progress = 100;
           hilog.info(DOMAIN, TAG, 'login onPageEnd url=%{public}s', event.url);
+          if (PortalConfig.isCasUrl(event.url)) {
+            // CAS 页面上用户刚输入的学号自动回传，后续水电卡直接使用。
+            this.controller.runJavaScript(STUDENT_SCRAPE_JS).catch(() => {
+            });
+          }
           if (this.handled) {
             return;
           }

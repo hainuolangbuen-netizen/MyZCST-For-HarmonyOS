@@ -6,6 +6,7 @@
 /build/
 /*/build/
 /.hvigor/
+/.hvigor-home/
 /hvigor/.cache/
 /.preview/
 /*/.preview/

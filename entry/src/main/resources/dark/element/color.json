@@ -41,12 +41,16 @@
       "value": "#FF7A6B"
     },
     {
+      "name": "brand_navy_text",
+      "value": "#A9C2EE"
+    },
+    {
       "name": "text_primary",
       "value": "#E6E6E6"
     },
     {
       "name": "text_secondary",
-      "value": "#8A8F99"
+      "value": "#A6ADB8"
     },
     {
       "name": "divider",
@@ -54,15 +58,15 @@
     },
     {
       "name": "bar_frost_thin",
-      "value": "#1AFFFFFF"
+      "value": "#33000000"
     },
     {
       "name": "bar_frost_standard",
-      "value": "#33FFFFFF"
+      "value": "#59000000"
     },
     {
       "name": "bar_frost_strong",
-      "value": "#59FFFFFF"
+      "value": "#80000000"
     }
   ]
 }

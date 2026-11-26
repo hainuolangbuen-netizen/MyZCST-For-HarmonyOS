@@ -22,7 +22,7 @@
     },
     {
       "name": "schedule_card_name",
-      "value": "今日课表"
+      "value": "今日课程"
     },
     {
       "name": "schedule_card_desc",
@@ -35,6 +35,14 @@
     {
       "name": "todo_card_desc",
       "value": "显示待办与未读消息"
+    },
+    {
+      "name": "fee_card_name",
+      "value": "智能水电"
+    },
+    {
+      "name": "fee_card_desc",
+      "value": "显示剩余电量（度）与剩余水量（吨）"
     },
     {
       "name": "tab_news",
