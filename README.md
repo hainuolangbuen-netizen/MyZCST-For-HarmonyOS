@@ -1,7 +1,7 @@
 # 我的珠科 · 鸿蒙版
 
 > 珠海科技学院校园门户的 **HarmonyOS 原生客户端**，用 ArkTS + ArkUI 从零重写。
-> 当前版本：**1.0.7**（versionCode `1000007`，API 26）。
+> 当前版本：**1.0.8**（versionCode `1000008`，API 26）。
 
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-API%2026-000000?logo=harmonyos)](https://developer.huawei.com/consumer/cn/)
 [![ArkTS](https://img.shields.io/badge/ArkTS-ArkUI-1a73e8)](https://developer.huawei.com/consumer/cn/arkts)
@@ -56,7 +56,7 @@
 | **消息** | 学校通知公告、融合门户待办入口 |
 | **我的** | 登录状态、融合门户、学校官网、意见反馈、关于、帮助、设置 |
 | **设置** | 深色 / 浅色 / 跟随系统；沉浸光感 轻 / 标准 / 强 |
-| **桌面小组件** | 今日课程、我的待办、智能水电，2×2 / 2×4 / 4×4；课程/待办自动同步，智能水电从页面读取剩余电量/水量 |
+| **桌面小组件** | 今日课程、我的待办、智能水电，2×2 / 2×4 / 4×4；课程/待办自动同步，智能水电登录后自动识别学号并读取剩余电量/水量 |
 
 ## 亮点一：沉浸光感
 
