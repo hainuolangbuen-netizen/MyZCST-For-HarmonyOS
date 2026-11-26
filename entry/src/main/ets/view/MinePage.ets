@@ -203,7 +203,7 @@ export struct MinePage {
           })
         }
 
-        Text('我的珠科 · 鸿蒙版 1.0.4')
+        Text('我的珠科 · 鸿蒙版 1.0.5')
           .fontSize(11)
           .fontColor($r('app.color.text_secondary'))
           .margin({ top: 20 })
