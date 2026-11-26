@@ -416,10 +416,10 @@ struct SettingsPage {
 
             Row() {
               Column() {
-                Text('添加宿舍水电卡片')
+                Text('添加智能水电卡片')
                   .fontSize(16)
                   .fontColor($r('app.color.text_primary'))
-                Text('显示电费、冷水、热水余额')
+                Text('显示剩余电量与剩余水量')
                   .fontSize(12)
                   .fontColor($r('app.color.text_secondary'))
                   .margin({ top: 3 })

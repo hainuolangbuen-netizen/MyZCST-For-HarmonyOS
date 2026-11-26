@@ -53,7 +53,7 @@ export class WaterBridge {
           continue;
         }
         const unit: string = WaterBridge.str(rec['unit']).length > 0
-          ? WaterBridge.str(rec['unit']) : (label.indexOf('电') >= 0 ? '度' : '元');
+          ? WaterBridge.str(rec['unit']) : (label.indexOf('电') >= 0 ? '度' : '吨');
         items.push({
           label: label,
           balance: balance,
@@ -80,50 +80,112 @@ export class WaterBridge {
         }
       }
       const room: string = WaterBridge.str(root['room']);
-      const ctx: common.Context = this.context;
-      // 页面可能只显示水或只显示电；保留另一类上次的数据，避免互相覆盖。
-      const existing: string = CardStore.getSync(ctx, CardStore.KEY_FEE_LINES);
-      const merged: string[] = [];
-      for (const oldLine of existing.split('\n')) {
-        if (oldLine.indexOf('|') <= 0) {
-          continue;
-        }
-        const label: string = oldLine.split('|')[0];
-        const unit: string = oldLine.split('|').length > 2 ? oldLine.split('|')[2] : '';
-        if (unit === '元') {
-          // 旧版本可能把水的金额当成余额写进来；用户要看的是吨数，直接丢掉。
-          continue;
-        }
-        if (hasNewPower && label.indexOf('电') >= 0) {
-          continue;
-        }
-        if (hasNewWater && label.indexOf('水') >= 0) {
-          continue;
-        }
-        merged.push(oldLine);
-      }
-      for (const line of lines) {
-        merged.push(line);
-      }
-      const oldRoom: string = CardStore.getSync(ctx, CardStore.KEY_FEE_ROOM);
-      CardStore.put(ctx, CardStore.KEY_FEE_ROOM, room.length > 0 ? room : oldRoom).then(() => {
-        CardStore.put(ctx, CardStore.KEY_FEE_LINES, merged.join('\n')).then(() => {
-          const d = new Date();
-          const p = (n: number): string => (n < 10 ? '0' + n : String(n));
-          const stamp: string = p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' '
-            + p(d.getHours()) + ':' + p(d.getMinutes()) + ' 已同步';
-          CardStore.put(ctx, CardStore.KEY_FEE_UPDATED, stamp).then(() => {
-            CardStore.put(ctx, CardStore.KEY_FEE_SYNC_AT, String(Date.now())).then(() => {
-              CardData.updateAll(ctx);
-            });
-          });
-        });
-      });
+      this.commit(room, lines, hasNewPower, hasNewWater);
       this.last = payload;
       hilog.info(DOMAIN, TAG, 'saved from page items=%{public}d', items.length);
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'save failed');
     }
+  }
+
+  /**
+   * 页面 XHR/fetch 响应兜底：有些 H5 的余额在 JSON 里、DOM 只有图表/画布，
+   * 此时从响应原文里提取带「度/吨」的单位值或 water 字段。
+   */
+  saveRaw(source: string, text: string): void {
+    if (this.context === undefined || text.length === 0 || text.length > 200000) {
+      return;
+    }
+    const all: string = (source + ' ' + text).toLowerCase();
+    if (all.indexOf('water') < 0 && all.indexOf('fee') < 0 && all.indexOf('吨') < 0
+      && all.indexOf('度') < 0 && all.indexOf('kwh') < 0) {
+      return;
+    }
+    const normalized: string = text.replace(/\\"/g, '"');
+    const items: ScrapedItem[] = [];
+    WaterBridge.addMatch(items, normalized,
+      /(?:electricity|electric|elec)(?:Balance|Value|Num|Amount)?["']?\s*[:=]\s*["']?(-?\d+(?:\.\d+)?)/i,
+      '剩余电量', '度');
+    WaterBridge.addMatch(items, normalized,
+      /(?:coldWater|cold_water|coldwater)(?:Balance|Value|Num|Amount)?["']?\s*[:=]\s*["']?(-?\d+(?:\.\d+)?)(?:\s*(?:吨|m³|m3|t))?/i,
+      '剩余冷水', '吨');
+    WaterBridge.addMatch(items, normalized,
+      /(?:hotWater|hot_water|hotwater)(?:Balance|Value|Num|Amount)?["']?\s*[:=]\s*["']?(-?\d+(?:\.\d+)?)(?:\s*(?:吨|m³|m3|t))?/i,
+      '剩余热水', '吨');
+    WaterBridge.addMatch(items, normalized,
+      /(?:冷水|冷水量|热水|热水量|剩余水量|水量)[^0-9-]{0,24}(-?\d+(?:\.\d+)?)\s*(?:吨|m³|m3)/i,
+      '剩余水量', '吨');
+    if (items.length === 0) {
+      return;
+    }
+    const roomMatch: RegExpMatchArray | null = normalized.match(/[A-Za-z]\d+-\d+/);
+    const room: string = roomMatch === null ? '' : roomMatch[0];
+    const filled: ScrapedItem[] = [];
+    const seen: string[] = [];
+    for (const item of items) {
+      if (seen.indexOf(item.label) >= 0) {
+        continue;
+      }
+      seen.push(item.label);
+      filled.push(item);
+    }
+    this.save(JSON.stringify({ room: room, items: filled }));
+  }
+
+  private static addMatch(items: ScrapedItem[], text: string, pattern: RegExp,
+    label: string, unit: string): void {
+    const m: RegExpMatchArray | null = text.match(pattern);
+    if (m === null) {
+      return;
+    }
+    const value: number = Number(m[1]);
+    if (isNaN(value)) {
+      return;
+    }
+    items.push({ label: label, balance: value, unit: unit, used: 0 });
+  }
+
+  private commit(room: string, lines: string[], hasNewPower: boolean, hasNewWater: boolean): void {
+    if (this.context === undefined) {
+      return;
+    }
+    const ctx: common.Context = this.context;
+    const existing: string = CardStore.getSync(ctx, CardStore.KEY_FEE_LINES);
+    const merged: string[] = [];
+    for (const oldLine of existing.split('\n')) {
+      if (oldLine.indexOf('|') <= 0) {
+        continue;
+      }
+      const label: string = oldLine.split('|')[0];
+      const unit: string = oldLine.split('|').length > 2 ? oldLine.split('|')[2] : '';
+      if (unit === '元') {
+        continue;
+      }
+      if (hasNewPower && label.indexOf('电') >= 0) {
+        continue;
+      }
+      if (hasNewWater && label.indexOf('水') >= 0) {
+        continue;
+      }
+      merged.push(oldLine);
+    }
+    for (const line of lines) {
+      merged.push(line);
+    }
+    const oldRoom: string = CardStore.getSync(ctx, CardStore.KEY_FEE_ROOM);
+    CardStore.put(ctx, CardStore.KEY_FEE_ROOM, room.length > 0 ? room : oldRoom).then(() => {
+      CardStore.put(ctx, CardStore.KEY_FEE_LINES, merged.join('\n')).then(() => {
+        const d = new Date();
+        const p = (n: number): string => (n < 10 ? '0' + n : String(n));
+        const stamp: string = p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' '
+          + p(d.getHours()) + ':' + p(d.getMinutes()) + ' 已同步';
+        CardStore.put(ctx, CardStore.KEY_FEE_UPDATED, stamp).then(() => {
+          CardStore.put(ctx, CardStore.KEY_FEE_SYNC_AT, String(Date.now())).then(() => {
+            CardData.updateAll(ctx);
+          });
+        });
+      });
+    });
   }
 
   private static str(value: Object | undefined): string {
@@ -147,6 +209,45 @@ export const WATER_SCRAPE_JS: string = `
 (function () {
   if (window.__myzcstWaterHooked) return;
   window.__myzcstWaterHooked = true;
+  function sendRaw(url, text) {
+    try {
+      if (window.__myzcstWater && window.__myzcstWater.saveRaw) {
+        window.__myzcstWater.saveRaw(String(url || ''), String(text || ''));
+      }
+    } catch (e) {}
+  }
+  try {
+    var of = window.fetch;
+    if (of) {
+      window.fetch = function () {
+        var args = arguments;
+        var p = of.apply(this, args);
+        try {
+          p.then(function (r) {
+            try {
+              r.clone().text().then(function (t) { sendRaw(args[0], t); });
+            } catch (e) {}
+          });
+        } catch (e) {}
+        return p;
+      };
+    }
+  } catch (e) {}
+  try {
+    var op = XMLHttpRequest.prototype.open;
+    var os = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (m, u) {
+      this.__myzcstUrl = u;
+      return op.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function () {
+      var xhr = this;
+      xhr.addEventListener('load', function () {
+        try { if (xhr.responseText) sendRaw(xhr.__myzcstUrl, xhr.responseText); } catch (e) {}
+      });
+      return os.apply(this, arguments);
+    };
+  } catch (e) {}
   function clean(s) { return String(s || '').replace(/\\s+/g, ' ').trim(); }
   function numberIn(s) {
     var m = String(s || '').match(/-?\\d+(?:\\.\\d+)?/);
@@ -202,5 +303,7 @@ export const WATER_SCRAPE_JS: string = `
 export function isWaterUrl(url: string): boolean {
   const lower: string = url.toLowerCase();
   return lower.indexOf('watercharges') >= 0 || lower.indexOf('watermanage') >= 0
+    || lower.indexOf('wanxiao') >= 0 || lower.indexOf('water') >= 0
+    || lower.indexOf('electric') >= 0 || lower.indexOf('hydro') >= 0
     || lower.indexOf('/water') >= 0;
 }

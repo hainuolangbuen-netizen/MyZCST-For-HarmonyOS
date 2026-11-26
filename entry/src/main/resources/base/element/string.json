@@ -38,11 +38,11 @@
     },
     {
       "name": "fee_card_name",
-      "value": "宿舍水电"
+      "value": "智能水电"
     },
     {
       "name": "fee_card_desc",
-      "value": "显示宿舍电费、冷水、热水余额"
+      "value": "显示剩余电量（度）与剩余水量（吨）"
     },
     {
       "name": "tab_news",

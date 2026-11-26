@@ -119,6 +119,7 @@ export class FeeSync {
       }
 
       let roomName: string = '';
+      let roomVerify: string = '';
       let feeLines: string[] = [];
       for (const obj of rooms) {
         if (obj === null || obj === undefined || typeof obj !== 'object') {
@@ -129,6 +130,7 @@ export class FeeSync {
         if (verify.length === 0) {
           continue;
         }
+        roomVerify = verify;
         roomName = FeeSync.str(room['roomfullname']);
         if (roomName.length === 0) {
           roomName = '未知房间';
@@ -136,6 +138,15 @@ export class FeeSync {
         roomName = FeeSync.shortRoom(roomName);
         feeLines = FeeSync.parseItems(room);
         break;
+      }
+
+      // getbindroom 的 detaillist 只有汇总；智能水电首页的 h5_getstuindexpage
+      // 才返回 modlist（电控/冷水/热水分别一条），这里优先用它的读数。
+      if (roomVerify.length > 0) {
+        const h5: string[] = await FeeSync.fetchH5(roomVerify, studentNo);
+        if (h5.length > 0) {
+          feeLines = h5;
+        }
       }
 
       if (roomName.length === 0) {
@@ -160,6 +171,87 @@ export class FeeSync {
       const e = err as BusinessError;
       hilog.warn(DOMAIN, TAG, 'sync failed: %{public}d %{public}s', e.code, e.message);
       return false;
+    } finally {
+      request.destroy();
+    }
+  }
+
+  /** 智能水电首页：按 roomverify 取 modlist（电控/冷水/热水），单位以读数语义为准。 */
+  private static async fetchH5(roomVerify: string, studentNo: string): Promise<string[]> {
+    const param: string = '{"cmd":"h5_getstuindexpage","roomverify":"' + roomVerify
+      + '","account":"' + studentNo + '","timestamp":"' + FeeSync.stamp() + '"}';
+    const body: string = 'param=' + encodeURIComponent(param)
+      + '&customercode=' + CUSTOMERCODE
+      + '&method=h5_getstuindexpage&command=' + COMMAND;
+    const request = http.createHttp();
+    try {
+      const response: http.HttpResponse = await request.request(ENDPOINT, {
+        method: http.RequestMethod.POST,
+        header: {
+          'Accept': '*/*',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Origin': 'https://xqh5.17wanxiao.com',
+          'Referer': REFERER,
+          'User-Agent': UA,
+          'X-Requested-With': 'com.newcapec.mobile.ncp'
+        },
+        extraData: body,
+        connectTimeout: 15000,
+        readTimeout: 20000
+      });
+      if (response.responseCode !== 200 || typeof response.result !== 'string') {
+        return [];
+      }
+      const outer: Record<string, Object> = JSON.parse(response.result as string) as Record<string, Object>;
+      if (FeeSync.str(outer['code_']) !== '0') {
+        return [];
+      }
+      const bodyValue: Object | undefined = outer['body'];
+      const innerText: string = typeof bodyValue === 'string'
+        ? bodyValue as string : JSON.stringify(bodyValue);
+      const inner: Record<string, Object> = JSON.parse(innerText) as Record<string, Object>;
+      const mods: Object | undefined = inner['modlist'];
+      if (!Array.isArray(mods)) {
+        return [];
+      }
+      const out: string[] = [];
+      const seen: string[] = [];
+      for (const raw of mods as Object[]) {
+        if (raw === null || raw === undefined || typeof raw !== 'object') {
+          continue;
+        }
+        const mod: Record<string, Object> = raw as Record<string, Object>;
+        const type: string = FeeSync.str(mod['bussnesstype']);
+        const name: string = FeeSync.str(mod['devicename']);
+        const balance: number = FeeSync.num(mod['odd']);
+        const used: number = FeeSync.num(mod['todayuse']);
+        let label: string = '';
+        let unit: string = '';
+        if (type === '0' || name.indexOf('电') >= 0) {
+          label = '剩余电量';
+          unit = '度';
+        } else if (type === '1' || name.indexOf('冷') >= 0) {
+          label = '剩余冷水';
+          unit = '吨';
+        } else if (type === '2' || name.indexOf('热') >= 0) {
+          label = '剩余热水';
+          unit = '吨';
+        } else {
+          label = name.length > 0 ? name : '用水';
+          unit = '吨';
+        }
+        if (seen.indexOf(label) >= 0) {
+          continue;
+        }
+        seen.push(label);
+        const urgent: boolean = balance < (unit === '度' ? 20 : 1);
+        out.push(label + '|' + balance.toFixed(2) + '|' + unit + '|' + used.toFixed(2)
+          + '|' + (urgent ? '1' : '0'));
+      }
+      return out;
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, 'h5 parse failed');
+      return [];
     } finally {
       request.destroy();
     }

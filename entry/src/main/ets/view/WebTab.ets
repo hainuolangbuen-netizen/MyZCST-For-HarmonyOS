@@ -58,7 +58,7 @@ export struct WebTab {
         .javaScriptProxy({
           object: this.waterBridge,
           name: '__myzcstWater',
-          methodList: ['save'],
+          methodList: ['save', 'saveRaw'],
           controller: this.controller
         })
         .onProgressChange((event) => {
@@ -66,6 +66,10 @@ export struct WebTab {
         })
         .onPageBegin((event) => {
           hilog.info(DOMAIN, TAG, 'onPageBegin url=%{public}s', event.url);
+          if (isWaterUrl(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
+          }
         })
         .onPageEnd((event) => {
           this.progress = 100;

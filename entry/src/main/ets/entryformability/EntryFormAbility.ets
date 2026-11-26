@@ -44,7 +44,7 @@ export default class EntryFormAbility extends FormExtensionAbility {
         'scheduleLines': '打开「我的珠科」并登录后自动同步',
         'todoTitle': '我的待办',
         'todoLines': '暂无待办',
-        'feeTitle': '宿舍水电',
+        'feeTitle': '智能水电',
         'feeRoom': '',
         'feeLines': '尚未获取水电数据',
         'feeUpdatedText': '',

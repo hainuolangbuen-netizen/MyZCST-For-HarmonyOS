@@ -37,7 +37,7 @@ export class CardManager {
 
   /** 打开「宿舍水电」的卡片管理页。 */
   static openFeeManager(ui: UIContext): void {
-    CardManager.openManager(ui, FEE_FORM, '宿舍水电', formInfo.FormDimension.Dimension_2_2);
+    CardManager.openManager(ui, FEE_FORM, '智能水电', formInfo.FormDimension.Dimension_2_2);
   }
 
   private static openManager(ui: UIContext, formName: string, label: string,

@@ -10,7 +10,7 @@
 @Entry
 @Component
 struct FeeCard {
-  @LocalStorageProp('feeTitle') feeTitle: string = '宿舍水电';
+  @LocalStorageProp('feeTitle') feeTitle: string = '智能水电';
   @LocalStorageProp('feeRoom') feeRoom: string = '';
   @LocalStorageProp('feeLines') feeLines: string = '尚未获取水电数据';
   @LocalStorageProp('feeUpdatedText') feeUpdated: string = '';

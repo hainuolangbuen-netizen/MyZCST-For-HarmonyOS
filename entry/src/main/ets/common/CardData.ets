@@ -44,7 +44,7 @@ export class CardData {
       'todoTitle': '我的待办',
       'todoLines': todo.length > 0 ? todo : '暂无待办',
       'todoUpdatedText': todoUpdated,
-      'feeTitle': '宿舍水电',
+      'feeTitle': '智能水电',
       'feeRoom': feeRoom,
       'feeLines': feeLines.length > 0 ? feeLines : '尚未获取水电数据',
       'feeUpdatedText': feeUpdated,

@@ -27,6 +27,7 @@ struct WebViewPage {
   private controller: webview.WebviewController = new webview.WebviewController();
   private initialUrl: string = '';
   private waterBridge: WaterBridge = new WaterBridge();
+  private waterReloaded: boolean = false;
 
   aboutToAppear(): void {
     this.waterBridge.attach(getContext(this) as common.Context);
@@ -41,6 +42,12 @@ struct WebViewPage {
 
   private topPad(): number {
     return this.getUIContext().px2vp(this.topAvoidPx);
+  }
+
+  /** 页面标题/URL 任一命中水电都注入；有些智能水电页 URL 不含 water。 */
+  private shouldScrape(url: string): boolean {
+    return isWaterUrl(url) || this.title.indexOf('水电') >= 0
+      || this.title.indexOf('水费') >= 0 || this.title.indexOf('电费') >= 0;
   }
 
   build() {
@@ -92,17 +99,31 @@ struct WebViewPage {
         .javaScriptProxy({
           object: this.waterBridge,
           name: '__myzcstWater',
-          methodList: ['save'],
+          methodList: ['save', 'saveRaw'],
           controller: this.controller
         })
         .onProgressChange((event) => {
           this.progress = event.newProgress;
         })
+        .onPageBegin((event) => {
+          if (this.shouldScrape(event.url)) {
+            this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
+            });
+          }
+        })
         .onPageEnd((event) => {
           this.progress = 100;
           this.currentUrl = event.url;
           hilog.info(DOMAIN, TAG, 'onPageEnd %{public}s', event.url);
-          if (isWaterUrl(event.url)) {
+          if (this.shouldScrape(event.url)) {
+            // 第一次进入水电页：先注入，再刷新一次，让脚本赶在页面 XHR 之前挂上
+            // fetch/XHR 钩子；否则首屏数据请求已经结束，只能靠 DOM 扫描。
+            if (!this.waterReloaded) {
+              this.waterReloaded = true;
+              setTimeout(() => {
+                this.controller.refresh();
+              }, 500);
+            }
             this.controller.runJavaScript(WATER_SCRAPE_JS).catch(() => {
             });
           }
