@@ -35,6 +35,11 @@ struct FeeCard {
     return this.part(line, 4) === '1';
   }
 
+  private hasUsed(line: string): boolean {
+    const used: number = Number(this.part(line, 3));
+    return !isNaN(used) && used > 0;
+  }
+
   @Builder
   feeRow(line: string) {
     Row() {
@@ -43,7 +48,7 @@ struct FeeCard {
           .fontSize(12)
           .fontColor('#AAB8CA')
           .maxLines(1)
-        if (this.part(line, 3).length > 0) {
+        if (this.hasUsed(line)) {
           Text('已用 ' + this.part(line, 3) + this.part(line, 2))
             .fontSize(9)
             .fontColor('#6F7B8B')

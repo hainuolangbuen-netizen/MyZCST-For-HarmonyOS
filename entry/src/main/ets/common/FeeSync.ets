@@ -176,12 +176,16 @@ export class FeeSync {
         }
         const item: Record<string, Object> = raw as Record<string, Object>;
         const type: string = FeeSync.str(item['businesstype']);
-        const label: string = FeeSync.label(type, i);
+        // 完美校园的 `odd`：电费是剩余度数；冷水/热水是剩余**金额**。
+        // 用户要看的是剩余吨数，金额不在卡片里冒充吨数——水的吨数由
+        // 应用内「智能水电」页面读取（WaterBridge）补齐。
+        if (type !== '0') {
+          continue;
+        }
         const balance: number = FeeSync.num(item['odd']);
         const used: number = FeeSync.num(item['use']);
-        const unit: string = type === '0' ? '度' : ((type === '1' || type === '2') ? '元' : (i === 0 ? '度' : '元'));
-        const urgent: boolean = balance < (unit === '度' ? 20 : 10);
-        out.push(label + '|' + balance.toFixed(2) + '|' + unit + '|' + used.toFixed(2)
+        const urgent: boolean = balance < 20;
+        out.push('剩余电量|' + balance.toFixed(2) + '|度|' + used.toFixed(2)
           + '|' + (urgent ? '1' : '0'));
       }
     }

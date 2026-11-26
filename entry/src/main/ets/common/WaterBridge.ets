@@ -65,15 +65,49 @@ export class WaterBridge {
         return;
       }
       const lines: string[] = [];
+      let hasNewPower: boolean = false;
+      let hasNewWater: boolean = false;
       for (const item of items.slice(0, 8)) {
-        const urgent: boolean = item.balance < (item.unit === '度' ? 20 : 10);
-        lines.push(item.label + '|' + item.balance.toFixed(2) + '|' + item.unit + '|'
-          + item.used.toFixed(2) + '|' + (urgent ? '1' : '0'));
+        const urgent: boolean = item.balance < (item.unit === '度' ? 20 : (item.unit === '吨' ? 1 : 10));
+        const line: string = item.label + '|' + item.balance.toFixed(2) + '|' + item.unit + '|'
+          + item.used.toFixed(2) + '|' + (urgent ? '1' : '0');
+        lines.push(line);
+        if (item.label.indexOf('电') >= 0) {
+          hasNewPower = true;
+        }
+        if (item.label.indexOf('水') >= 0) {
+          hasNewWater = true;
+        }
       }
       const room: string = WaterBridge.str(root['room']);
       const ctx: common.Context = this.context;
-      CardStore.put(ctx, CardStore.KEY_FEE_ROOM, room.length > 0 ? room : '宿舍').then(() => {
-        CardStore.put(ctx, CardStore.KEY_FEE_LINES, lines.join('\n')).then(() => {
+      // 页面可能只显示水或只显示电；保留另一类上次的数据，避免互相覆盖。
+      const existing: string = CardStore.getSync(ctx, CardStore.KEY_FEE_LINES);
+      const merged: string[] = [];
+      for (const oldLine of existing.split('\n')) {
+        if (oldLine.indexOf('|') <= 0) {
+          continue;
+        }
+        const label: string = oldLine.split('|')[0];
+        const unit: string = oldLine.split('|').length > 2 ? oldLine.split('|')[2] : '';
+        if (unit === '元') {
+          // 旧版本可能把水的金额当成余额写进来；用户要看的是吨数，直接丢掉。
+          continue;
+        }
+        if (hasNewPower && label.indexOf('电') >= 0) {
+          continue;
+        }
+        if (hasNewWater && label.indexOf('水') >= 0) {
+          continue;
+        }
+        merged.push(oldLine);
+      }
+      for (const line of lines) {
+        merged.push(line);
+      }
+      const oldRoom: string = CardStore.getSync(ctx, CardStore.KEY_FEE_ROOM);
+      CardStore.put(ctx, CardStore.KEY_FEE_ROOM, room.length > 0 ? room : oldRoom).then(() => {
+        CardStore.put(ctx, CardStore.KEY_FEE_LINES, merged.join('\n')).then(() => {
           const d = new Date();
           const p = (n: number): string => (n < 10 ? '0' + n : String(n));
           const stamp: string = p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' '
@@ -126,24 +160,28 @@ export const WATER_SCRAPE_JS: string = `
     var rm = body.match(/[A-Za-z]\\d+-\\d+/);
     if (rm) room = rm[0];
     var defs = [
-      ['电费', /电费|电量/, '度'],
-      ['冷水费', /冷水|自来水/, '元'],
-      ['热水费', /热水/, '元']
+      ['剩余电量', /电费|电量|电表|剩余电/, '度', /(-?\\d+(?:\\.\\d+)?)\\s*(?:度|kWh)/i],
+      ['剩余冷水', /冷水|冷水量/, '吨', /(-?\\d+(?:\\.\\d+)?)\\s*(?:吨|m³|m3)/i],
+      ['剩余热水', /热水|热水量/, '吨', /(-?\\d+(?:\\.\\d+)?)\\s*(?:吨|m³|m3)/i],
+      ['剩余水量', /剩余水量|水表|水量/, '吨', /(-?\\d+(?:\\.\\d+)?)\\s*(?:吨|m³|m3)/i]
     ];
     var out = [];
+    var hasWater = false;
     for (var d = 0; d < defs.length; d++) {
-      var label = defs[d][0], re = defs[d][1], unit = defs[d][2];
+      var label = defs[d][0], re = defs[d][1], unit = defs[d][2], unitRe = defs[d][3];
+      if (label === '剩余水量' && hasWater) continue;
       for (var i = 0; i < lines.length; i++) {
         if (!re.test(lines[i])) continue;
-        var v = numberIn(lines[i]);
+        var v = matchUnit(lines[i], unitRe);
         if (v === null) {
           for (var k = 1; k <= 2 && i + k < lines.length; k++) {
-            v = numberIn(lines[i + k]);
+            v = matchUnit(lines[i + k], unitRe);
             if (v !== null) break;
           }
         }
         if (v !== null) {
           out.push({ label: label, balance: v, unit: unit, used: 0 });
+          if (label !== '剩余电量') hasWater = true;
           break;
         }
       }
@@ -151,6 +189,10 @@ export const WATER_SCRAPE_JS: string = `
     if (out.length > 0 && window.__myzcstWater) {
       window.__myzcstWater.save(JSON.stringify({ room: room, items: out }));
     }
+  }
+  function matchUnit(s, re) {
+    var m = String(s || '').match(re);
+    return m ? parseFloat(m[1]) : null;
   }
   setInterval(scan, 1500);
   setTimeout(scan, 500);

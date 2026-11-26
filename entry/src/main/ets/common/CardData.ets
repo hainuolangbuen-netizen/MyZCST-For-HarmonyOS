@@ -23,7 +23,19 @@ export class CardData {
     const subtitle: string = CardStore.getSync(context, CardStore.KEY_SUBTITLE);
     const todoUpdated: string = CardStore.getSync(context, CardStore.KEY_TODO_UPDATED);
     const feeRoom: string = CardStore.getSync(context, CardStore.KEY_FEE_ROOM);
-    const feeLines: string = CardStore.getSync(context, CardStore.KEY_FEE_LINES);
+    const rawFee: string = CardStore.getSync(context, CardStore.KEY_FEE_LINES);
+    // 1.0.5 之前可能把「冷水费 1.00 元」这种金额当成余额写进卡片；
+    // 用户要的是吨数/度数，元为单位的行不再展示。
+    const feeKept: string[] = [];
+    for (const line of rawFee.split('\n')) {
+      if (line.indexOf('|元|') >= 0) {
+        continue;
+      }
+      if (line.length > 0) {
+        feeKept.push(line);
+      }
+    }
+    const feeLines: string = feeKept.join('\n');
     const feeUpdated: string = CardStore.getSync(context, CardStore.KEY_FEE_UPDATED);
     const data: Record<string, string> = {
       'scheduleTitle': '今日课程',
