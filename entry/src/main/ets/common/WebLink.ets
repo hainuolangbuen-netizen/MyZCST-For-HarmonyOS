@@ -31,6 +31,11 @@ export class WebLink {
       lower.startsWith('javascript:');
   }
 
+  /** 空白页：支付弹窗常用 about:blank 占位，导航到它会留下整页白色。 */
+  static isBlank(url: string): boolean {
+    return url === '' || url.toLowerCase() === 'about:blank';
+  }
+
   /** 支付类/外部 App Scheme。 */
   static isExternalScheme(url: string): boolean {
     const lower: string = url.toLowerCase();

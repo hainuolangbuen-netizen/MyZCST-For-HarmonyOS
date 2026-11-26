@@ -100,6 +100,10 @@ struct WebViewPage {
           if (!event.data.isMainFrame()) {
             return false;
           }
+          if (WebLink.isBlank(url)) {
+            Ui.toast(this.getUIContext(), '已拦截空白页');
+            return true;
+          }
           if (WebLink.isWebUrl(url) && !WebLink.isPaymentUrl(url)) {
             return false;
           }
