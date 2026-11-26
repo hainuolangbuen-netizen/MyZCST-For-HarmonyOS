@@ -71,6 +71,10 @@ export struct HomePage {
   /** 「我的收藏」解析出的真实应用（图标/地址都来自服务端）。 */
   @State favApps: PortalApp[] = [];
   @State bannerIndex: number = 0;
+  /** 搜索框：关键词、结果、「搜索」面板开关。 */
+  @State searchQuery: string = '';
+  @State searchResults: PortalApp[] = [];
+  @State showSearch: boolean = false;
   /** 由 Index 注入：切到指定页签（"添加应用"用）。 */
   onOpenTab: (index: number) => void = (index: number) => {};
 
@@ -116,6 +120,35 @@ export struct HomePage {
     }
   }
 
+  /** 按关键词过滤应用目录（空关键词返回全部，最多展示 30 条）。 */
+  private refreshSearch(): void {
+    const query: string = this.searchQuery.trim().toLowerCase();
+    const out: PortalApp[] = [];
+    for (const app of AppCatalog.all()) {
+      if (query.length === 0 || app.name.toLowerCase().indexOf(query) >= 0) {
+        out.push(app);
+      }
+    }
+    this.searchResults = out.slice(0, 30);
+  }
+
+  /** 打开搜索面板；目录还没加载（用户没进过「应用」页且未登录）时先尝试拉一次。 */
+  private openSearch(): void {
+    this.refreshSearch();
+    this.showSearch = true;
+    if (!AppCatalog.isLoaded()) {
+      this.fetchCatalog().then(() => {
+        this.refreshSearch();
+      });
+    }
+  }
+
+  private openSearchApp(app: PortalApp): void {
+    this.showSearch = false;
+    Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
+      new WebPageParams(app.name, this.absolute(app.url)));
+  }
+
   /** 接口里的地址可能是 '/_web/...' 相对路径，图标是 http 明文，统一规范化。 */
   private absolute(url: string): string {
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -156,6 +189,112 @@ export struct HomePage {
     }
     Ui.pushWith(this.getUIContext(), 'pages/WebViewPage',
       new WebPageParams(item.label, item.url));
+  }
+
+  /** 搜索结果面板：复用首页搜索框的关键词，点结果直接打开对应应用。 */
+  @Builder
+  searchSheet() {
+    Column() {
+      Row() {
+        Text('搜索应用')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+          .layoutWeight(1)
+        Text('关闭')
+          .fontSize(14)
+          .fontColor($r('app.color.brand_blue'))
+          .onClick(() => {
+            this.showSearch = false;
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+
+      Row() {
+        TextInput({ placeholder: '输入应用名称', text: this.searchQuery })
+          .layoutWeight(1)
+          .height(38)
+          .fontSize(13)
+          .backgroundColor($r('app.color.cell_bg'))
+          .borderRadius(19)
+          .padding({ left: 14, right: 14 })
+          .onChange((value: string) => {
+            this.searchQuery = value;
+            this.refreshSearch();
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 8 })
+
+      if (this.searchResults.length > 0) {
+        List() {
+          ForEach(this.searchResults, (app: PortalApp) => {
+            ListItem() {
+              Row() {
+                if (app.icon.length > 0) {
+                  Image(this.httpsIcon(app.icon))
+                    .width(32)
+                    .height(32)
+                    .objectFit(ImageFit.Contain)
+                    .borderRadius(8)
+                    .alt($r('app.media.ic_app_web'))
+                } else {
+                  Text(app.name.length > 0 ? app.name.substring(0, 1) : '?')
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                    .width(32)
+                    .height(32)
+                    .textAlign(TextAlign.Center)
+                    .borderRadius(8)
+                    .backgroundColor($r('app.color.brand_blue'))
+                }
+                Text(app.name)
+                  .fontSize(14)
+                  .fontColor($r('app.color.text_primary'))
+                  .margin({ left: 12 })
+                  .layoutWeight(1)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+              .onClick(() => {
+                this.openSearchApp(app);
+              })
+            }
+          }, (app: PortalApp) => 'search-' + app.name)
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .divider({ strokeWidth: 1, color: $r('app.color.divider') })
+      } else {
+        Column() {
+          Text(AppCatalog.isLoaded() ? '没有匹配的应用' : '应用目录还没有加载，请先登录并打开「应用」页')
+            .fontSize(13)
+            .fontColor($r('app.color.text_secondary'))
+            .textAlign(TextAlign.Center)
+            .lineHeight(20)
+            .padding({ left: 24, right: 24 })
+          if (!AppCatalog.isLoaded()) {
+            Button('去「应用」页加载')
+              .fontSize(13)
+              .height(36)
+              .backgroundColor($r('app.color.brand_blue'))
+              .margin({ top: 14 })
+              .onClick(() => {
+                this.showSearch = false;
+                this.onOpenTab(3);
+              })
+          }
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+      }
+    }
+    .width('100%')
+    .height(520)
   }
 
   /** 搜索框离屏顶的距离（vp）= 状态栏高度 + 8。 */
@@ -271,6 +410,14 @@ export struct HomePage {
             .fontColor(Color.White)
             .placeholderColor('#B3FFFFFF')
             .searchIcon({ size: 18, color: '#E6FFFFFF' })
+            .onChange((value: string) => {
+              this.searchQuery = value;
+              this.refreshSearch();
+            })
+            .onSubmit((value: string) => {
+              this.searchQuery = value;
+              this.openSearch();
+            })
         }
         .width('100%')
         .height(BANNER_H)
@@ -311,6 +458,10 @@ export struct HomePage {
         .backgroundColor($r('app.color.cell_bg'))
         .borderRadius(12)
         .margin({ left: 12, right: 12, top: 12 })
+        .onClick(() => {
+          // 「管理」= 去应用页维护「我的收藏」。
+          this.onOpenTab(3);
+        })
 
         Text('资讯来自学校官网，卡片与应用入口在「应用」页维护')
           .fontSize(11)
@@ -328,5 +479,13 @@ export struct HomePage {
     .backgroundColor($r('app.color.page_bg'))
     .edgeEffect(EdgeEffect.Spring)
     .align(Alignment.Top)
+    .bindSheet($$this.showSearch, this.searchSheet(), {
+      height: 520,
+      dragBar: true,
+      showClose: false,
+      onDisappear: () => {
+        this.showSearch = false;
+      }
+    })
   }
 }

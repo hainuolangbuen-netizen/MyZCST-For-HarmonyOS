@@ -72,6 +72,8 @@ export struct AppPage {
   @State favoriteNames: string[] = [];
   /** 「添加应用」选择面板是否展开。 */
   @State showPicker: boolean = false;
+  /** 「添加应用」面板里的搜索关键词。 */
+  @State pickerQuery: string = '';
   /** 当前分类下的应用。 */
   @State apps: PortalApp[] = [];
   @State activeId: number = -1;
@@ -179,6 +181,21 @@ export struct AppPage {
     if (ctx !== undefined) {
       Favorites.save(ctx, list);
     }
+  }
+
+  /** 「添加应用」面板的过滤结果（按应用显示名做不区分大小写的包含匹配）。 */
+  private pickerApps(): PortalApp[] {
+    const query: string = this.pickerQuery.trim().toLowerCase();
+    if (query.length === 0) {
+      return this.allApps;
+    }
+    const out: PortalApp[] = [];
+    for (const app of this.allApps) {
+      if (app.name.toLowerCase().indexOf(query) >= 0) {
+        out.push(app);
+      }
+    }
+    return out;
   }
 
   /** 拉分类列表（公开接口，不需要登录）。 */
@@ -566,6 +583,7 @@ export struct AppPage {
     .layoutWeight(1)
     .padding({ top: 10, bottom: 10 })
     .onClick(() => {
+      this.pickerQuery = '';
       this.showPicker = true;
     })
   }
@@ -578,10 +596,34 @@ export struct AppPage {
         .fontSize(12)
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
-        .padding({ left: 16, right: 16, top: 4, bottom: 10 })
+        .padding({ left: 16, right: 16, top: 4, bottom: 8 })
+
+      Row() {
+        TextInput({ placeholder: '搜索应用', text: this.pickerQuery })
+          .layoutWeight(1)
+          .height(38)
+          .fontSize(13)
+          .backgroundColor($r('app.color.cell_bg'))
+          .borderRadius(19)
+          .padding({ left: 14, right: 14 })
+          .onChange((value: string) => {
+            this.pickerQuery = value;
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 8 })
+
+      if (this.pickerApps().length === 0) {
+        Text('没有匹配的应用')
+          .fontSize(13)
+          .fontColor($r('app.color.text_secondary'))
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .padding({ top: 28, bottom: 8 })
+      }
 
       List() {
-        ForEach(this.allApps, (app: PortalApp) => {
+        ForEach(this.pickerApps(), (app: PortalApp) => {
           ListItem() {
             Row() {
               if (app.icon.length > 0) {
